@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resource Management | ChronoSync</title>
+  <meta name="description" content="Manage available resources for job allocation and scheduling.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <a href="/" class="brand-section">
+        <div class="brand-logo">⚡</div>
+        <div>
+          <div class="brand-title">ChronoSync</div>
+          <div class="brand-subtitle">Job Scheduler</div>
+        </div>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="/" class="nav-link">📊 Dashboard</a></li>
+        <li><a href="/jobs" class="nav-link">📋 Jobs</a></li>
+        <li><a href="/resources" class="nav-link active">📦 Resources</a></li>
+        <li><a href="/schedule" class="nav-link">⏱️ Schedule</a></li>
+        <li><a href="/comparison" class="nav-link">⚖️ Algorithm Comparison</a></li>
+        <li><a href="/about" class="nav-link">📖 About Project</a></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span>Module Online</span>
+        </div>
+        <div style="color: var(--text-dim); margin-top: 4px; font-size: 0.72rem;">
+          {{ total_count }} Resources Registered
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Flash Messages / Alerts (e.g. Delete Protection Warning) -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert-banner alert-{{ category }}">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                {% if category == 'success' %}
+                  <span>✅</span>
+                {% elif category == 'warning' %}
+                  <span>⚠️</span>
+                {% else %}
+                  <span>🛑</span>
+                {% endif %}
+                <span>{{ message }}</span>
+              </div>
+              <button onclick="this.parentElement.remove()" style="background:none; border:none; color:inherit; cursor:pointer; font-size:1.1rem;">&times;</button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Resource Management</h1>
+          <p class="page-subtitle">Manage available resources for job allocation and scheduling.</p>
+        </div>
+        <div>
+          <a href="/resources/add" class="btn btn-primary" id="btn-add-resource">
+            + Add Resource
+          </a>
+        </div>
+      </header>
+
+      <!-- KPI Summary Cards with Real Database Counts -->
+      <section class="stats-grid">
+        <div class="stat-card" style="--stat-glow: rgba(99, 102, 241, 0.4);">
+          <span class="stat-label">Total Resources</span>
+          <span class="stat-value">{{ total_count }}</span>
+          <span class="stat-meta">All registered entities</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(16, 185, 129, 0.4);">
+          <span class="stat-label">Available Resources</span>
+          <span class="stat-value" style="color: var(--accent-emerald);">{{ available_count }}</span>
+          <span class="stat-meta">Ready for job dispatch</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(245, 158, 11, 0.4);">
+          <span class="stat-label">Busy Resources</span>
+          <span class="stat-value" style="color: var(--accent-amber);">{{ busy_count }}</span>
+          <span class="stat-meta">Currently in operation</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(239, 68, 68, 0.4);">
+          <span class="stat-label">Unavailable</span>
+          <span class="stat-value" style="color: #F87171;">{{ unavailable_count }}</span>
+          <span class="stat-meta">Maintenance / Offline</span>
+        </div>
+      </section>
+
+      <!-- Combined Search and Filter Bar -->
+      <form method="GET" action="/resources" class="filter-bar" id="resource-filter-form">
+        <div style="flex: 1; min-width: 240px; display: flex; align-items: center; position: relative;">
+          <input 
+            type="text" 
+            name="search" 
+            id="search-input"
+            class="filter-input" 
+            placeholder="Search by ID, Name, or Type..." 
+            value="{{ search_query }}"
+            style="width: 100%; padding-left: 2.2rem;"
+          >
+          <span style="position: absolute; left: 0.8rem; color: var(--text-dim); pointer-events: none;">🔍</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label for="status-select" style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted);">Status:</label>
+          <select name="status" id="status-select" class="filter-input" onchange="document.getElementById('resource-filter-form').submit();">
+            <option value="All" {% if status_filter == 'All' %}selected{% endif %}>All Statuses</option>
+            {% for st in resource_statuses %}
+              <option value="{{ st }}" {% if status_filter == st %}selected{% endif %}>{{ st }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label for="type-select" style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted);">Type:</label>
+          <select name="type" id="type-select" class="filter-input" onchange="document.getElementById('resource-filter-form').submit();">
+            <option value="All" {% if type_filter == 'All' %}selected{% endif %}>All Types</option>
+            {% for tp in resource_types %}
+              <option value="{{ tp }}" {% if type_filter == tp %}selected{% endif %}>{{ tp }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-secondary btn-sm" style="height: 38px;">Filter</button>
+        {% if search_query or status_filter != 'All' or type_filter != 'All' %}
+          <a href="/resources" class="btn btn-secondary btn-sm" style="height: 38px; color: var(--text-dim);" title="Reset filters">Reset</a>
+        {% endif %}
+      </form>
+
+      <!-- Resource Table -->
+      <div class="glass-panel">
+        <div class="table-container">
+          <table class="cyber-table" id="resources-table">
+            <thead>
+              <tr>
+                <th>Resource ID</th>
+                <th>Resource Name</th>
+                <th>Resource Type</th>
+                <th>Available Hours</th>
+                <th>Status</th>
+                <th style="text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if resources %}
+                {% for r in resources %}
+                <tr id="resource-row-{{ r.id }}">
+                  <td>
+                    <span style="font-family: var(--font-mono); font-weight: 700; color: var(--accent-cyan);">
+                      {{ r.resource_id }}
+                    </span>
+                  </td>
+                  <td>
+                    <strong style="color: #fff;">{{ r.resource_name }}</strong>
+                  </td>
+                  <td>
+                    <span class="badge badge-greedy">
+                      {{ r.resource_type }}
+                    </span>
+                  </td>
+                  <td>
+                    <span style="font-family: var(--font-mono);">{{ r.available_hours }} hrs</span>
+                  </td>
+                  <td>
+                    {% if r.status == 'Available' %}
+                      <span class="status-badge status-available">● Available</span>
+                    {% elif r.status == 'Busy' %}
+                      <span class="status-badge status-busy">● Busy</span>
+                    {% else %}
+                      <span class="status-badge status-unavailable">● Unavailable</span>
+                    {% endif %}
+                  </td>
+                  <td style="text-align: right;">
+                    <div style="display: inline-flex; gap: 0.4rem;">
+                      <a href="/resources/view/{{ r.id }}" class="btn btn-secondary btn-sm" title="View Details">
+                        View
+                      </a>
+                      <a href="/resources/edit/{{ r.id }}" class="btn btn-secondary btn-sm" title="Edit Resource">
+                        Edit
+                      </a>
+                      <form method="POST" action="/resources/delete/{{ r.id }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete resource {{ r.resource_id }} ({{ r.resource_name }})?');">
+                        <button type="submit" class="btn btn-danger btn-sm" title="Delete Resource">
+                          Delete
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="6" style="text-align: center; color: var(--text-dim); padding: 3rem;">
+                    No resources found matching the specified search or filter criteria.
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Resource Utilization Preparation Summary Card -->
+      <div class="glass-panel" style="margin-top: 1.5rem;">
+        <h2 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">
+          Resource Utilization Summary
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+          Capacity hours available for algorithmic workload scheduling.
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem 1.25rem;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Total Capacity Hours</div>
+            <div style="font-size: 1.5rem; font-weight: 800; color: #fff; font-family: var(--font-mono); margin-top: 0.25rem;">
+              {{ utilization.total_hours }} hrs
+            </div>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem 1.25rem;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Used Resource Hours</div>
+            <div style="font-size: 1.5rem; font-weight: 800; color: var(--accent-cyan); font-family: var(--font-mono); margin-top: 0.25rem;">
+              {{ utilization.used_hours }} hrs
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 0.2rem;">From scheduled jobs (0 if none)</div>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem 1.25rem;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Available Hours</div>
+            <div style="font-size: 1.5rem; font-weight: 800; color: var(--accent-emerald); font-family: var(--font-mono); margin-top: 0.25rem;">
+              {{ utilization.available_hours }} hrs
+            </div>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem 1.25rem;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Resource Utilization %</div>
+            <div style="font-size: 1.5rem; font-weight: 800; color: var(--accent-purple); font-family: var(--font-mono); margin-top: 0.25rem;">
+              {{ utilization.utilization_percentage }}%
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 0.2rem;">(Used / Total) × 100</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

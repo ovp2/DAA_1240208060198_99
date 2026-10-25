@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChronoSync | Advanced Job Scheduling System</title>
+  <meta name="description" content="High-performance interactive simulation platform for Greedy and Dynamic Programming Job Scheduling Algorithms.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <a href="/" class="brand-section">
+        <div class="brand-logo">⚡</div>
+        <div>
+          <div class="brand-title">ChronoSync</div>
+          <div class="brand-subtitle">Job Scheduler</div>
+        </div>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="/" class="nav-link active">📊 Dashboard</a></li>
+        <li><a href="/jobs" class="nav-link">📋 Jobs</a></li>
+        <li><a href="/resources" class="nav-link">📦 Resources</a></li>
+        <li><a href="/schedule" class="nav-link">⏱️ Schedule</a></li>
+        <li><a href="/comparison" class="nav-link">⚖️ Algorithm Comparison</a></li>
+        <li><a href="/about" class="nav-link">📖 About Project</a></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span>Engine Online</span>
+        </div>
+        <div style="color: var(--text-dim); margin-top: 4px; font-size: 0.72rem;">
+          {{ total_resources }} Resources Registered
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Operational Dashboard</h1>
+          <p class="page-subtitle">Algorithmic workload scheduling, resource profiling, and dynamic optimization</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+          <button onclick="triggerLoadDemoData()" class="btn btn-secondary" id="dash-btn-demo">🚀 Load Demo Data</button>
+          <a href="/resources" class="btn btn-primary">📦 Manage Resources</a>
+          <a href="/schedule" class="btn btn-secondary">⚡ Launch Visualizer</a>
+        </div>
+      </header>
+
+      <!-- Real Database Resource Inventory KPI Cards (Section 7) -->
+      <h2 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.85rem;">
+        Hardware & Human Resource Inventory
+      </h2>
+      <section class="stats-grid">
+        <div class="stat-card" style="--stat-glow: rgba(99, 102, 241, 0.4);">
+          <span class="stat-label">Total Resources</span>
+          <span class="stat-value" id="dash-total-resources">{{ total_resources }}</span>
+          <span class="stat-meta">Registered across all categories</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(16, 185, 129, 0.4);">
+          <span class="stat-label">Available Resources</span>
+          <span class="stat-value" id="dash-avail-resources" style="color: var(--accent-emerald);">{{ available_resources }}</span>
+          <span class="stat-meta">Active and ready for allocation</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(245, 158, 11, 0.4);">
+          <span class="stat-label">Busy Resources</span>
+          <span class="stat-value" id="dash-busy-resources" style="color: var(--accent-amber);">{{ busy_resources }}</span>
+          <span class="stat-meta">Currently handling workloads</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(239, 68, 68, 0.4);">
+          <span class="stat-label">Unavailable Resources</span>
+          <span class="stat-value" id="dash-unavail-resources" style="color: #F87171;">{{ unavailable_resources }}</span>
+          <span class="stat-meta">Offline or maintenance status</span>
+        </div>
+      </section>
+
+      <!-- Phase 4 & Phase 7 Scheduling Telemetry -->
+      <h2 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.85rem;">
+        Workload Scheduling Performance Telemetry
+      </h2>
+      <section class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+        <div class="stat-card" style="--stat-glow: rgba(56, 189, 248, 0.4);">
+          <span class="stat-label">Total Jobs in Pool</span>
+          <span class="stat-value" id="dash-total-jobs">{{ total_jobs_count }}</span>
+          <span class="stat-meta">Configured process workloads</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(14, 165, 233, 0.4);">
+          <span class="stat-label">Pending / Ready Jobs</span>
+          <span class="stat-value" id="dash-pending-jobs" style="color: var(--accent-cyan);">{{ pending_jobs_count }}</span>
+          <span class="stat-meta">Awaiting algorithmic dispatch</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(16, 185, 129, 0.4);">
+          <span class="stat-label">Scheduled Jobs</span>
+          <span class="stat-value" id="dash-scheduled-jobs" style="color: var(--accent-emerald);">{{ scheduled_jobs_count }}</span>
+          <span class="stat-meta">Allocated via Greedy / DP dispatch</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(239, 68, 68, 0.4);">
+          <span class="stat-label">Missed Jobs</span>
+          <span class="stat-value" id="dash-missed-jobs" style="color: #F87171;">{{ missed_jobs_count }}</span>
+          <span class="stat-meta">Constrained by deadlines/capacity</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(245, 158, 11, 0.4);">
+          <span class="stat-label">Total Realized Profit</span>
+          <span class="stat-value" id="dash-total-profit" style="color: var(--accent-amber);">${{ total_scheduled_profit }}</span>
+          <span class="stat-meta">Profit earned from scheduled jobs</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(139, 92, 246, 0.4);">
+          <span class="stat-label">Resource Utilization</span>
+          <span class="stat-value" id="dash-res-util" style="color: var(--accent-purple);">{{ resource_utilization_pct }}%</span>
+          <span class="stat-meta">Assigned capacity consumption</span>
+        </div>
+      </section>
+
+      <!-- Phase 6: Latest Algorithm Comparison Card (Requirement 23) -->
+      <div class="glass-panel" style="margin-bottom: 2rem; border-color: rgba(99, 102, 241, 0.35);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.85rem;">
+            <div style="width: 44px; height: 44px; border-radius: var(--radius-md); background: rgba(99, 102, 241, 0.2); border: 1px solid var(--accent-primary); display: flex; align-items: center; justify-content: center; font-size: 1.35rem;">
+              ⚖️
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--accent-cyan); font-weight: 700; letter-spacing: 0.05em;">
+                Empirical Evaluation Telemetry
+              </div>
+              <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin: 0.15rem 0;">
+                Latest Algorithm Comparison
+              </h2>
+            </div>
+          </div>
+          <a href="/comparison" class="btn btn-primary" id="btn-view-comparison" style="text-decoration: none;">
+            ⚖️ View Full Comparison
+          </a>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.25rem;">
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.9rem 1.1rem;">
+            <span style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; display: block;">Last Dataset Size</span>
+            <strong style="font-size: 1.15rem; color: #fff; font-family: var(--font-mono);">
+              {% if latest_comparison %}
+                {{ latest_comparison.dataset_size }} ({{ latest_comparison.num_jobs }} jobs)
+              {% else %}
+                Small (10 jobs)
+              {% endif %}
+            </strong>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.9rem 1.1rem;">
+            <span style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; display: block;">Greedy Execution Time</span>
+            <strong style="font-size: 1.15rem; color: var(--accent-emerald); font-family: var(--font-mono);">
+              {% if latest_comparison and latest_comparison.greedy_time is not none %}
+                {{ "%.6f"|format(latest_comparison.greedy_time) }} s
+              {% else %}
+                ~0.000350 s
+              {% endif %}
+            </strong>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.9rem 1.1rem;">
+            <span style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; display: block;">DP Execution Time</span>
+            <strong style="font-size: 1.15rem; color: #C4B5FD; font-family: var(--font-mono);">
+              {% if latest_comparison and latest_comparison.dp_time is not none %}
+                {{ "%.6f"|format(latest_comparison.dp_time) }} s
+              {% else %}
+                ~0.000420 s
+              {% endif %}
+            </strong>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.9rem 1.1rem;">
+            <span style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; display: block;">Last Comparison Time</span>
+            <strong style="font-size: 0.92rem; color: var(--text-muted); font-family: var(--font-mono);">
+              {% if latest_comparison and latest_comparison.compared_at %}
+                {{ latest_comparison.compared_at }}
+              {% else %}
+                Ready for Benchmark
+              {% endif %}
+            </strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Architecture & Algorithm Showcase Grid -->
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+        <!-- Left: Algorithmic Paradigms Breakdown -->
+        <div class="glass-panel">
+          <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: #fff;">
+            Scheduling Paradigms: Greedy vs. Dynamic Programming
+          </h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Explore how greedy heuristics and dynamic programming address complex multi-criteria optimization in process dispatching.
+          </p>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+            <!-- Greedy Box -->
+            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: var(--radius-md); padding: 1.25rem;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                <span class="badge badge-greedy">Greedy Approach</span>
+                <span style="font-size: 0.75rem; color: var(--accent-cyan); font-family: var(--font-mono);">O(n log n)</span>
+              </div>
+              <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">Local Optimum Strategy</h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                Makes immediate locally optimal choices at each decision timestamp without backtracking. Highly scalable with low latency.
+              </p>
+              <ul style="list-style: none; font-size: 0.82rem; color: var(--text-dim); display: flex; flex-direction: column; gap: 0.4rem;">
+                <li>✓ <strong>FCFS:</strong> Fair FIFO sequence</li>
+                <li>✓ <strong>SJF / SRTF:</strong> Minimizes average waiting time</li>
+                <li>✓ <strong>Priority (P / NP):</strong> Critical task urgency</li>
+                <li>✓ <strong>EDF:</strong> Optimal dynamic real-time deadlines</li>
+                <li>✓ <strong>Profit Sequencing:</strong> Disjoint-set greedy deadline slotting</li>
+              </ul>
+            </div>
+
+            <!-- DP Box -->
+            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(236, 72, 153, 0.2); border-radius: var(--radius-md); padding: 1.25rem;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                <span class="badge badge-dp">Dynamic Programming</span>
+                <span style="font-size: 0.75rem; color: var(--accent-rose); font-family: var(--font-mono);">O(n log n) - O(n·W)</span>
+              </div>
+              <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">Global Optimal Substructure</h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                Solves overlapping subproblems and memoizes optimal decisions to guarantee the globally maximum revenue under constraints.
+              </p>
+              <ul style="list-style: none; font-size: 0.82rem; color: var(--text-dim); display: flex; flex-direction: column; gap: 0.4rem;">
+                <li>✓ <strong>Weighted Interval:</strong> Non-overlapping max-profit subset</li>
+                <li>✓ <strong>Binary Search memoization:</strong> Logarithmic compatibility</li>
+                <li>✓ <strong>0/1 Knapsack:</strong> Exact workload budget optimization</li>
+                <li>✓ <strong>Traceback Reconstruct:</strong> Full state recovery</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Preset Quick Switcher -->
+        <div class="glass-panel" style="display: flex; flex-direction: column;">
+          <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem; color: #fff;">Workload Presets</h2>
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+            Instantly switch job queue profiles to analyze algorithm trade-offs.
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 0.75rem; flex: 1;">
+            <button onclick="loadPreset('cloud_microservices')" class="preset-chip active" style="justify-content: flex-start; padding: 0.75rem 1rem;">
+              <span>🌐</span>
+              <div style="text-align: left;">
+                <div style="color: #fff; font-weight: 700;">Cloud Microservices</div>
+                <div style="font-size: 0.72rem; color: var(--text-dim);">Mixed arrivals, standard API bursts</div>
+              </div>
+            </button>
+
+            <button onclick="loadPreset('realtime_dsp')" class="preset-chip" style="justify-content: flex-start; padding: 0.75rem 1rem;">
+              <span>🎙️</span>
+              <div style="text-align: left;">
+                <div style="color: #fff; font-weight: 700;">Real-Time Audio / DSP</div>
+                <div style="font-size: 0.72rem; color: var(--text-dim);">Ultra-tight deadlines, urgent priority</div>
+              </div>
+            </button>
+
+            <button onclick="loadPreset('high_contention')" class="preset-chip" style="justify-content: flex-start; padding: 0.75rem 1rem;">
+              <span>💥</span>
+              <div style="text-align: left;">
+                <div style="color: #fff; font-weight: 700;">High-Contention Burst</div>
+                <div style="font-size: 0.72rem; color: var(--text-dim);">Simultaneous t=0 arrivals, stress test</div>
+              </div>
+            </button>
+
+            <button onclick="loadPreset('profit_maximizer')" class="preset-chip" style="justify-content: flex-start; padding: 0.75rem 1rem;">
+              <span>💎</span>
+              <div style="text-align: left;">
+                <div style="color: #fff; font-weight: 700;">Revenue Maximizer</div>
+                <div style="font-size: 0.72rem; color: var(--text-dim);">High-value enterprise transactions</div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current Job Queue Snapshot -->
+      <div class="glass-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+          <div>
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff;">Job Queue Quick View</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Currently loaded processes ready for simulation</p>
+          </div>
+          <a href="/jobs" class="btn btn-secondary btn-sm">Manage Jobs & Add New →</a>
+        </div>
+
+        <div class="table-container">
+          <table class="cyber-table">
+            <thead>
+              <tr>
+                <th>Job Identifier</th>
+                <th>Arrival (t)</th>
+                <th>Burst Time</th>
+                <th>Priority Level</th>
+                <th>Deadline</th>
+                <th>Profit / Value</th>
+                <th>Compute Req</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if jobs %}
+                {% for job in jobs %}
+                <tr>
+                  <td>
+                    <div class="job-pill">
+                      <span class="color-dot" data-color="{{ job.color }}"></span>
+                      <strong>{{ job.name }}</strong>
+                    </div>
+                  </td>
+                  <td>t = {{ job.arrival_time }}</td>
+                  <td>{{ job.burst_time }} units</td>
+                  <td><span class="badge {{ 'badge-danger' if job.priority == 1 else 'badge-warning' }}">P{{ job.priority }}</span></td>
+                  <td>t = {{ job.deadline }}</td>
+                  <td><strong style="color: var(--accent-emerald);">${{ job.profit }}</strong></td>
+                  <td>{{ job.cpu_req }} Cores / {{ job.mem_req }} GB</td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="7" style="text-align: center; color: var(--text-dim); padding: 3rem 1rem;">
+                    <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📋</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: #fff;">No jobs have been added yet.</div>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0.5rem auto 1.25rem; max-width: 400px;">
+                      Initialize your scheduling queue using the official demonstration dataset or configure custom jobs.
+                    </p>
+                    <div style="display: flex; gap: 0.75rem; justify-content: center;">
+                      <button onclick="triggerLoadDemoData()" class="btn btn-primary btn-sm">🚀 Load Demo Data</button>
+                      <a href="/jobs" class="btn btn-secondary btn-sm">+ Add Custom Job</a>
+                    </div>
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  <script>
+    async function triggerLoadDemoData() {
+      if (!confirm("Load the official 8-job DAA demonstration dataset? This will configure realistic workloads for algorithm comparison.")) return;
+      try {
+        const resp = await fetch("/demo/load", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ overwrite: true })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          showToast("Official Demo Data loaded successfully!", "success");
+          setTimeout(() => window.location.reload(), 500);
+        }
+      } catch (err) {
+        showToast("Failed to load demo data.", "error");
+      }
+    }
+  </script>
+</body>
+</html>

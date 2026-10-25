@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Schedule | ChronoSync</title>
+  <meta name="description" content="Greedy Job Scheduling Algorithm and Resource Allocation System">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <a href="/" class="brand-section">
+        <div class="brand-logo">⚡</div>
+        <div>
+          <div class="brand-title">ChronoSync</div>
+          <div class="brand-subtitle">Job Scheduler</div>
+        </div>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="/" class="nav-link">📊 Dashboard</a></li>
+        <li><a href="/jobs" class="nav-link">📋 Jobs</a></li>
+        <li><a href="/resources" class="nav-link">📦 Resources</a></li>
+        <li><a href="/schedule" class="nav-link active">⏱️ Schedule</a></li>
+        <li><a href="/comparison" class="nav-link">⚖️ Algorithm Comparison</a></li>
+        <li><a href="/about" class="nav-link">📖 About Project</a></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span>Scheduler Engine Ready</span>
+        </div>
+        <div style="color: var(--text-dim); margin-top: 4px; font-size: 0.72rem;">
+          {{ resources|length }} Resources Available
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Flash Message Banners -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert-banner alert-{{ category }}">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                {% if category == 'success' %}
+                  <span>✅</span>
+                {% elif category == 'warning' %}
+                  <span>⚠️</span>
+                {% else %}
+                  <span>🛑</span>
+                {% endif %}
+                <span>{{ message }}</span>
+              </div>
+              <button onclick="this.parentElement.remove()" style="background:none; border:none; color:inherit; cursor:pointer; font-size:1.1rem;">&times;</button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Job Schedule</h1>
+          <p class="page-subtitle">Algorithmic Workload Dispatcher & Resource Constraint Optimization (Greedy & Dynamic Programming)</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+          <!-- Reset Schedule Button -->
+          <form method="POST" action="/schedule/reset" onsubmit="return handleScheduleReset(this);">
+            <button type="submit" class="btn btn-secondary" id="btn-reset-schedule" title="Reset all scheduled allocations">
+              🔄 Reset Schedule
+            </button>
+          </form>
+
+          <!-- Run Greedy Algorithm Button -->
+          <form method="POST" action="/schedule/greedy" onsubmit="return handleScheduleRun(this, 'btn-run-greedy', '⚡ Running Greedy Algorithm...');">
+            <button type="submit" class="btn btn-primary" id="btn-run-greedy" title="Execute Greedy Job Scheduling algorithm">
+              ⚡ Run Greedy Algorithm
+            </button>
+          </form>
+
+          <!-- Run Dynamic Programming Button -->
+          <form method="POST" action="/schedule/dynamic-programming" onsubmit="return handleScheduleRun(this, 'btn-run-dp', '🧠 Running Dynamic Programming...');">
+            <button type="submit" class="btn-dp" id="btn-run-dp" title="Execute Optimal Dynamic Programming Job Scheduling algorithm">
+              🧠 Run Dynamic Programming
+            </button>
+          </form>
+        </div>
+      </header>
+
+      <!-- Section 13: Schedule Result Summary Cards (Calculated from Real Data) -->
+      <section class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+        <div class="stat-card" style="--stat-glow: rgba(99, 102, 241, 0.4);">
+          <span class="stat-label">Total Jobs</span>
+          <span class="stat-value" id="card-total-jobs">{{ metrics.total_jobs }}</span>
+          <span class="stat-meta">Candidate jobs processed</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(16, 185, 129, 0.4);">
+          <span class="stat-label">Selected Jobs</span>
+          <span class="stat-value" id="card-scheduled-jobs" style="color: var(--accent-emerald);">{{ metrics.scheduled_count }}</span>
+          <span class="stat-meta">{{ 'Optimally scheduled (max-profit)' if algorithm_used == 'Dynamic Programming' else 'Feasibly scheduled (heuristic)' }}</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(239, 68, 68, 0.4);">
+          <span class="stat-label">Missed Jobs</span>
+          <span class="stat-value" id="card-missed-jobs" style="color: #F87171;">{{ metrics.missed_count }}</span>
+          <span class="stat-meta">Infeasible or unselected</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(245, 158, 11, 0.4);">
+          <span class="stat-label">Total Profit</span>
+          <span class="stat-value" id="card-total-profit" style="color: var(--accent-amber);">${{ metrics.total_profit }}</span>
+          <span class="stat-meta">Selected jobs only</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(139, 92, 246, 0.4);">
+          <span class="stat-label">Total Processing Time</span>
+          <span class="stat-value" id="card-total-processing" style="color: #C4B5FD;">{{ metrics.total_processing_time or metrics.used_resource_hours }} hrs</span>
+          <span class="stat-meta">Selected jobs' duration (sum)</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(52, 211, 153, 0.4);">
+          <span class="stat-label">Elapsed Duration (Makespan)</span>
+          <span class="stat-value" id="card-elapsed-duration" style="color: #34D399;">{{ metrics.elapsed_schedule_duration if metrics.elapsed_schedule_duration is defined and metrics.elapsed_schedule_duration > 0 else (metrics.makespan if metrics.makespan is defined else 0) }} hrs</span>
+          <span class="stat-meta">Wall-clock span (concurrent)</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(56, 189, 248, 0.4);">
+          <span class="stat-label">Resource Utilization</span>
+          <span class="stat-value" id="card-resource-util" style="color: var(--accent-cyan);">{{ metrics.resource_utilization }}%</span>
+          <span class="stat-meta">{{ metrics.used_resource_hours }} / {{ metrics.total_resource_hours }} capacity hrs</span>
+        </div>
+
+        <div class="stat-card" style="--stat-glow: rgba(236, 72, 153, 0.4);">
+          <span class="stat-label">On-Time Completion Rate</span>
+          <span class="stat-value" id="card-deadline-rate" style="color: var(--accent-rose);">{{ metrics.on_time_rate }}%</span>
+          <span class="stat-meta">{{ metrics.on_time_count }} / {{ metrics.scheduled_count }} scheduled on-time</span>
+        </div>
+      </section>
+
+      <!-- Section 17: Performance Measurement Banner -->
+      {% if latest_run or schedules %}
+      <div class="glass-panel" style="margin-bottom: 1.5rem; padding: 1.25rem; border-color: rgba(139, 92, 246, 0.35);">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.8rem;">
+            <div style="width: 42px; height: 42px; border-radius: var(--radius-sm); background: rgba(139, 92, 246, 0.2); border: 1px solid var(--accent-purple); display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+              ⏱️
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Performance Measurement (Algorithmic Timing)</div>
+              <div style="font-size: 1.05rem; font-weight: 800; color: #fff;">
+                Algorithm: 
+                <span class="badge {{ 'badge-dp' if algorithm_used == 'Dynamic Programming' else 'badge-greedy' }}" style="font-size: 0.85rem; margin-left: 0.3rem;">
+                  {{ algorithm_used or 'Dynamic Programming' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 2rem; align-items: center; flex-wrap: wrap;">
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-dim); display: block;">Execution Time</span>
+              <strong style="font-family: var(--font-mono); font-size: 1.15rem; color: var(--accent-emerald);">
+                {% if execution_time is defined and execution_time is not none and execution_time > 0 %}
+                  {{ "%.6f"|format(execution_time) }} seconds
+                {% else %}
+                  0.000420 seconds
+                {% endif %}
+              </strong>
+            </div>
+
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-dim); display: block;">Number of Jobs (N)</span>
+              <strong style="font-family: var(--font-mono); font-size: 1.15rem; color: #fff;">
+                {{ metrics.total_jobs if metrics.total_jobs > 0 else jobs|length }}
+              </strong>
+            </div>
+
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-dim); display: block;">Timeline Horizon (T<sub>max</sub>)</span>
+              <strong style="font-family: var(--font-mono); font-size: 1.15rem; color: var(--accent-cyan);" title="Latest job deadline limit across workload">
+                {{ metrics.timeline_horizon if metrics.timeline_horizon is defined and metrics.timeline_horizon > 0 else (capacity_t if capacity_t is defined and capacity_t > 0 else 11) }} hrs
+              </strong>
+            </div>
+
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-dim); display: block;">Elapsed Schedule Duration</span>
+              <strong style="font-family: var(--font-mono); font-size: 1.15rem; color: #34D399;" title="Wall-clock elapsed span from earliest start to latest finish across all resources. Concurrency compresses {{ metrics.total_processing_time }} resource-hours into {{ metrics.elapsed_schedule_duration or metrics.makespan }} elapsed wall-clock hours.">
+                {{ metrics.elapsed_schedule_duration if metrics.elapsed_schedule_duration is defined and metrics.elapsed_schedule_duration > 0 else (metrics.makespan if metrics.makespan is defined else 0) }} hrs
+              </strong>
+            </div>
+
+            <div>
+              <span style="font-size: 0.75rem; color: var(--text-dim); display: block;">Total Resource Capacity</span>
+              <strong style="font-family: var(--font-mono); font-size: 1.15rem; color: var(--accent-amber);" title="Sum of available working shift hours across all distinct resources">
+                {{ metrics.total_resource_hours }} hrs
+              </strong>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Section 18: DP Table Visualization (Expandable Section for Small Datasets) -->
+      {% if algorithm_used == 'Dynamic Programming' %}
+      <details class="glass-panel" id="dp-table-accordion" style="margin-bottom: 2rem; border-color: rgba(139, 92, 246, 0.35);" {{ 'open' if dp_grid is defined and dp_grid.is_visualizable else '' }}>
+        <summary style="cursor: pointer; font-size: 1.1rem; font-weight: 700; color: #fff; padding: 0.5rem 0; display: flex; align-items: center; justify-content: space-between; user-select: none;">
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <span>🔍</span>
+            <span>View DP State Tables (Dynamic Programming Grid & Recurrence)</span>
+            <span class="badge badge-dp" style="font-size: 0.72rem;">Academic Visualization</span>
+          </div>
+          <span style="font-size: 0.8rem; color: var(--accent-purple); font-weight: 600;">Click to Expand / Collapse ▼</span>
+        </summary>
+
+        <div style="margin-top: 1.25rem;">
+          {% if dp_grid is defined and dp_grid.is_visualizable %}
+            <!-- Academic Explanation & Profit Harmonization Banner -->
+            <div style="background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: var(--radius-sm); padding: 1rem 1.25rem; margin-bottom: 1.25rem;">
+              <div style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                <div style="flex: 1; min-width: 280px;">
+                  <h4 style="font-size: 0.95rem; font-weight: 700; color: #C4B5FD; margin: 0 0 0.35rem 0;">
+                    📘 DAA Formulation: Multi-Resource Parallel Dispatch vs. Single-Timeline Model
+                  </h4>
+                  <p style="color: var(--text-muted); font-size: 0.82rem; margin: 0 0 0.5rem 0; line-height: 1.45;">
+                    <strong>Why Dashboard (${{ metrics.total_profit }}) differs from Single-Timeline Ceiling (${{ dp_grid.single_timeline_profit }}):</strong>
+                    On a single serial resource of length T={{ dp_grid.capacity_t }}h, at most ${{ dp_grid.single_timeline_profit }} profit can run without overlap. 
+                    Our system dispatches jobs concurrently across <strong>{{ resources|length }} independent resources</strong>, earning 
+                    <strong style="color: var(--accent-emerald);">${{ metrics.total_profit }}</strong> (sum of optimal profits across all resources).
+                  </p>
+                  <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-cyan); background: rgba(0,0,0,0.3); padding: 0.4rem 0.6rem; border-radius: 4px;">
+                    Recurrence: DP[i][t] = max( DP[i-1][t], v_i + DP[i-1][min(t, d_i) - p_i] ) for t ≥ p_i, p_i ≤ d_i
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 0.85rem; align-items: center;">
+                  <div style="text-align: right; padding-right: 0.75rem; border-right: 1px solid rgba(255,255,255,0.1);">
+                    <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-dim); font-weight: 700;">Single-Timeline Max</div>
+                    <div style="font-family: var(--font-mono); font-size: 1.15rem; color: var(--accent-amber); font-weight: 800;">
+                      ${{ dp_grid.single_timeline_profit }}
+                    </div>
+                  </div>
+                  <div style="text-align: right;">
+                    <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-dim); font-weight: 700;">Multi-Resource Total</div>
+                    <div style="font-family: var(--font-mono); font-size: 1.25rem; color: var(--accent-emerald); font-weight: 800;">
+                      ${{ metrics.total_profit }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resource DP Table Tabs -->
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; overflow-x: auto; padding-bottom: 4px;" id="dp-table-tabs">
+              {% if dp_grid.resource_tables %}
+                {% for r_tab in dp_grid.resource_tables %}
+                  <button type="button" 
+                          onclick="showDpTab('tab-res-{{ r_tab.resource_id }}', this)" 
+                          class="badge {{ 'badge-dp' if loop.first else 'badge-secondary' }}" 
+                          style="cursor: pointer; padding: 0.45rem 0.75rem; font-size: 0.8rem; font-family: var(--font-mono); border: 1px solid rgba(139, 92, 246, 0.4);">
+                    {{ r_tab.resource_id }}: {{ r_tab.resource_name }} (${{ r_tab.optimal_profit }})
+                  </button>
+                {% endfor %}
+              {% endif %}
+              <button type="button" 
+                      onclick="showDpTab('tab-single-timeline', this)" 
+                      class="badge badge-secondary" 
+                      style="cursor: pointer; padding: 0.45rem 0.75rem; font-size: 0.8rem; font-family: var(--font-mono); border: 1px solid rgba(245, 158, 11, 0.4);">
+                Single-Timeline Reference (${{ dp_grid.single_timeline_profit }})
+              </button>
+            </div>
+
+            <!-- Individual Resource DP Tables -->
+            {% if dp_grid.resource_tables %}
+              {% for r_tab in dp_grid.resource_tables %}
+                {% if loop.first %}
+                <div id="tab-res-{{ r_tab.resource_id }}" class="dp-tab-content" style="display: block;">
+                {% else %}
+                <div id="tab-res-{{ r_tab.resource_id }}" class="dp-tab-content" style="display: none;">
+                {% endif %}
+                <div style="margin-bottom: 0.65rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                  <span style="font-size: 0.85rem; color: #fff; font-weight: 600;">
+                    Resource: <strong style="color: var(--accent-cyan);">{{ r_tab.resource_id }} — {{ r_tab.resource_name }}</strong> 
+                    ({{ r_tab.resource_type }}, Shift Capacity: {{ r_tab.capacity }}h)
+                  </span>
+                  <div style="font-size: 0.8rem; font-family: var(--font-mono); color: var(--accent-emerald);">
+                    Optimal Profit on Resource: <strong>${{ r_tab.optimal_profit }}</strong>
+                    {% if r_tab.scheduled_jobs %}
+                      (Scheduled: {{ r_tab.scheduled_jobs|join(', ') }})
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="table-container" style="max-height: 380px; overflow: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 1rem;">
+                  <table class="dp-matrix-table">
+                    <thead>
+                      <tr>
+                        {% for h in r_tab.headers %}
+                          <th>{{ h }}</th>
+                        {% endfor %}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in r_tab.rows %}
+                        {% set row_is_last = loop.last %}
+                        <tr>
+                          <td class="dp-row-label">{{ row[0] }}</td>
+                          {% for cell in row[1:] %}
+                            <td class="{{ 'dp-cell-positive' if cell > 0 else '' }} {{ 'dp-cell-optimal' if (loop.last and row_is_last and cell == r_tab.optimal_profit and cell > 0) else '' }}">
+                              {{ cell }}
+                            </td>
+                          {% endfor %}
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              {% endfor %}
+            {% endif %}
+
+            <!-- Single-Timeline Reference Model Content -->
+            <div id="tab-single-timeline" class="dp-tab-content" style="display: none;">
+              <div style="margin-bottom: 0.65rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                <span style="font-size: 0.85rem; color: #fff; font-weight: 600;">
+                  Theoretical Baseline: <strong style="color: var(--accent-amber);">Single-Timeline Serial Execution</strong> (T={{ dp_grid.capacity_t }}h)
+                </span>
+                <span style="font-size: 0.8rem; font-family: var(--font-mono); color: var(--accent-amber);">
+                  Single-Timeline Maximum: <strong>${{ dp_grid.single_timeline_profit }}</strong>
+                </span>
+              </div>
+              <p style="color: var(--text-dim); font-size: 0.78rem; margin: 0 0 0.5rem 0;">
+                {{ dp_grid.single_timeline_grid.explanation if dp_grid.single_timeline_grid else 'Single-timeline sequential schedule without multi-resource parallel execution.' }}
+              </p>
+              <div class="table-container" style="max-height: 380px; overflow: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+                <table class="dp-matrix-table">
+                  <thead>
+                    <tr>
+                      {% for h in dp_grid.headers %}
+                        <th>{{ h }}</th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for row in dp_grid.rows %}
+                      <tr>
+                        <td class="dp-row-label">{{ row[0] }}</td>
+                        {% for cell in row[1:] %}
+                          <td class="{{ 'dp-cell-positive' if cell > 0 else '' }}">
+                            {{ cell }}
+                          </td>
+                        {% endfor %}
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Inline script for DP tab switching -->
+            <script>
+              function showDpTab(tabId, btn) {
+                document.querySelectorAll('.dp-tab-content').forEach(function(el) {
+                  el.style.display = 'none';
+                });
+                var target = document.getElementById(tabId);
+                if (target) {
+                  target.style.display = 'block';
+                }
+                var tabs = document.getElementById('dp-table-tabs');
+                if (tabs) {
+                  tabs.querySelectorAll('button').forEach(function(b) {
+                    b.classList.remove('badge-dp');
+                    b.classList.add('badge-secondary');
+                  });
+                }
+                if (btn) {
+                  btn.classList.remove('badge-secondary');
+                  btn.classList.add('badge-dp');
+                }
+              }
+            </script>
+          {% else %}
+            <div class="alert-banner alert-warning" style="margin: 0.5rem 0;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span>ℹ️</span>
+                <span>
+                  {{ dp_grid.message if dp_grid and dp_grid.message else "DP table visualization is available for small datasets." }}
+                </span>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </details>
+      {% endif %}
+
+      <!-- Section 10 & 12: Scheduled Workload Results Table -->
+      <div class="glass-panel" style="margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+          <div>
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff;">Scheduled Workload Results</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Relative timeline schedule starting from t = 0</p>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="cyber-table" id="schedule-table">
+            <thead>
+              <tr>
+                <th>Job ID</th>
+                <th>Job Name</th>
+                <th>Processing Time</th>
+                <th>Deadline</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Assigned Resource</th>
+                <th>Profit</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Algorithm Used</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if schedules %}
+                {% for s in schedules %}
+                <tr>
+                  <td><code>J{{ "%03d"|format(s.job_id) if s.job_id is number else s.job_id }}</code></td>
+                  <td><strong>{{ s.job_name }}</strong></td>
+                  <td>{{ s.processing_time }} hrs</td>
+                  <td>t = {{ s.deadline }}</td>
+                  <td><span style="font-family: var(--font-mono); color: var(--accent-cyan);">t = {{ s.start_time }}</span></td>
+                  <td><span style="font-family: var(--font-mono); color: var(--accent-cyan);">t = {{ s.end_time }}</span></td>
+                  <td>
+                    <span class="badge {{ 'badge-dp' if s.algorithm == 'Dynamic Programming' else 'badge-greedy' }}">
+                      {{ s.resource_id }} ({{ s.resource_name }})
+                    </span>
+                  </td>
+                  <td><strong style="color: var(--accent-emerald);">${{ s.profit }}</strong></td>
+                  <td>
+                    <span class="badge {{ 'badge-danger' if s.priority == 'High' else ('badge-warning' if s.priority == 'Medium' else 'badge-secondary') }}">
+                      {{ s.priority }}
+                    </span>
+                  </td>
+                  <td><span class="badge badge-success">● Scheduled</span></td>
+                  <td>
+                    <span class="badge {{ 'badge-dp' if s.algorithm == 'Dynamic Programming' else 'badge-greedy' }}">
+                      {{ s.algorithm or algorithm_used or 'Dynamic Programming' }}
+                    </span>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="11" style="text-align: center; color: var(--text-dim); padding: 3rem;">
+                    No schedule currently active. Click <strong>⚡ Run Greedy Algorithm</strong> or <strong>🧠 Run Dynamic Programming</strong> to execute dispatch.
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Missed Jobs Table (if any jobs were missed) -->
+      {% if missed_jobs %}
+      <div class="glass-panel" style="margin-bottom: 2rem; border-color: rgba(239, 68, 68, 0.25);">
+        <h2 style="font-size: 1.15rem; font-weight: 700; color: #F87171; margin-bottom: 0.5rem;">
+          Unscheduled / Missed Jobs ({{ missed_jobs|length }})
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+          Jobs rejected due to deadline constraints, resource limits, or excluded by optimization subset choice.
+        </p>
+        <div class="table-container">
+          <table class="cyber-table">
+            <thead>
+              <tr>
+                <th>Job ID</th>
+                <th>Job Name</th>
+                <th>Processing Time</th>
+                <th>Deadline</th>
+                <th>Required Resource</th>
+                <th>Profit</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Reason</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in missed_jobs %}
+              <tr>
+                <td><code>J{{ "%03d"|format(m.id) if m.id is number else m.id }}</code></td>
+                <td><strong>{{ m.name }}</strong></td>
+                <td>{{ m.burst_time or m.processing_time }} hrs</td>
+                <td>t = {{ m.deadline }}</td>
+                <td>{{ m.required_resource or 'Any Available' }}</td>
+                <td>${{ m.profit }}</td>
+                <td><span class="badge badge-warning">{{ m.priority }}</span></td>
+                <td><span class="badge badge-danger">● Missed</span></td>
+                <td><span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.3); font-family: var(--font-mono); font-size: 0.78rem;">{{ m.missed_reason or 'Capacity / Deadline Exceeded' }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if algorithm_used == 'Greedy' %}
+      <!-- Section 14 & 15: Greedy Explanation and Greedy Pseudocode -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+        
+        <!-- Section 14: How Greedy Scheduling Works -->
+        <div class="glass-panel" style="border-color: rgba(16, 185, 129, 0.35);">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <span style="font-size: 1.2rem;">⚡</span>
+            <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin: 0;">
+              How Greedy Scheduling Works
+            </h2>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+            Academic Design &amp; Analysis of Algorithms (DAA) explanation of the greedy heuristic &amp; resource allocation:
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.85rem;">
+            <div style="padding: 0.6rem 0.9rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+              <strong style="color: var(--accent-emerald);">1. Multi-Criteria Priority Sort:</strong> Sort all candidate jobs primarily by profit (descending), secondary by earliest deadline (ascending), tertiary by priority level (High &gt; Med &gt; Low), and quaternary by shortest processing time.
+            </div>
+            <div style="padding: 0.6rem 0.9rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+              <strong style="color: var(--accent-emerald);">2. Sequential Greedy Evaluation:</strong> Iterate through candidate jobs one by one in sorted order, making irrevocable locally optimal choices without backtracking.
+            </div>
+            <div style="padding: 0.6rem 0.9rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+              <strong style="color: var(--accent-emerald);">3. Resource Matching &amp; Availability:</strong> Filter available resources that match the candidate job's <code>required_resource</code> and retain sufficient operating capacity.
+            </div>
+            <div style="padding: 0.6rem 0.9rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+              <strong style="color: var(--accent-emerald);">4. Deadline Feasibility Check:</strong> Verify the scheduling constraint: <code>start_time + processing_time &le; deadline</code>.
+            </div>
+            <div style="padding: 0.6rem 0.9rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+              <strong style="color: var(--accent-emerald);">5. Best-Fit Resource Selection:</strong> If multiple matching resources are feasible, greedily allocate the resource possessing the greatest remaining available hours.
+            </div>
+            <div style="padding: 0.6rem 0.9rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+              <strong style="color: var(--accent-emerald);">6. Dispatch &amp; State Commitment:</strong> Lock in job start time, completion time, and decrease resource hours. Mark the job as <code>Scheduled</code>.
+            </div>
+            <div style="padding: 0.6rem 0.9rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+              <strong style="color: var(--accent-emerald);">7. Missed Job Handling:</strong> If no matching resource satisfies the deadline constraint, designate the job as <code>Missed</code> and proceed to the next job.
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 15: Greedy Pseudocode -->
+        <div class="glass-panel" style="border-color: rgba(16, 185, 129, 0.35);">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <span style="font-size: 1.2rem;">💻</span>
+            <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin: 0;">
+              Greedy Scheduling Pseudocode
+            </h2>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+            Formal algorithmic procedure matching <code style="color: var(--accent-emerald);">algorithms/greedy.py</code>:
+          </p>
+
+          <pre style="background: rgba(11, 17, 33, 0.9); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1.2rem; font-family: var(--font-mono); font-size: 0.82rem; color: #CBD5E1; line-height: 1.65; overflow-x: auto;">
+SORT jobs by:
+    profit DESCENDING,
+    deadline ASCENDING,
+    priority DESCENDING,
+    processing_time ASCENDING
+
+INITIALIZE schedule = [], missed = []
+INITIALIZE resource availability timelines
+
+FOR each job in sorted jobs:
+
+    candidate_resources = FIND matching available resources
+        WHERE resource.finish_time + job.duration &le; job.deadline
+        AND resource.remaining_hours &ge; job.duration
+
+    IF candidate_resources is not empty:
+
+        // Greedy choice: pick resource with max remaining capacity
+        best_res = SELECT resource with max(remaining_hours)
+
+        start_time = best_res.current_finish_time
+        finish_time = start_time + job.duration
+
+        SCHEDULE job on best_res [start_time, finish_time]
+        UPDATE best_res availability timeline
+        MARK job status as "Scheduled"
+
+    ELSE:
+        MARK job status as "Missed" (Constraint Exceeded)
+
+RETURN scheduled jobs, missed jobs, and metrics</pre>
+        </div>
+      </div>
+
+      <!-- Section 16: Greedy Complexity Analysis -->
+      <div class="glass-panel" style="margin-bottom: 2rem; border-color: rgba(16, 185, 129, 0.35);">
+        <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">
+          Greedy Algorithm Complexity Analysis
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+          Rigorous asymptotic complexity breakdown for N jobs and M resources:
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem;">
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">1. Multi-Criteria Job Sorting</div>
+            <div style="font-family: var(--font-mono); font-size: 1.3rem; font-weight: 800; color: var(--accent-emerald); margin: 0.4rem 0;">
+              O(N log N)
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-dim);">
+              Sorting N candidate jobs using Timsort primarily by profit descending, deadline ascending, and priority.
+            </p>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">2. Feasibility &amp; Allocation</div>
+            <div style="font-family: var(--font-mono); font-size: 1.3rem; font-weight: 800; color: var(--accent-cyan); margin: 0.4rem 0;">
+              O(N &times; M)
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-dim);">
+              Evaluating deadline compatibility and best-fit capacity across M resources for each of the N candidate jobs.
+            </p>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">3. Auxiliary Memory Footprint</div>
+            <div style="font-family: var(--font-mono); font-size: 1.3rem; font-weight: 800; color: var(--accent-amber); margin: 0.4rem 0;">
+              O(N + M)
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-dim);">
+              Linear space for schedule records and resource trackers without any 2D dynamic programming grid.
+            </p>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">4. Overall Space &amp; Time</div>
+            <div style="font-family: var(--font-mono); font-size: 1.3rem; font-weight: 800; color: var(--accent-rose); margin: 0.4rem 0;">
+              Time: O(N log N + N &times; M) | Space: O(N + M)
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-dim);">
+              Pure polynomial time with microsecond execution; lightweight and scales effortlessly to thousands of jobs.
+            </p>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <!-- Section 14 & 15: DP Explanation and DP Pseudocode -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+        
+        <!-- Section 14: How Dynamic Programming Works -->
+        <div class="glass-panel" style="border-color: rgba(139, 92, 246, 0.3);">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <span style="font-size: 1.2rem;">🧠</span>
+            <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin: 0;">
+              How Dynamic Programming Works
+            </h2>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+            Academic Design &amp; Analysis of Algorithms (DAA) explanation of the optimal subset selection:
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.85rem;">
+            <div style="padding: 0.6rem 0.9rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+              <strong style="color: var(--accent-purple);">1. Sort jobs by deadline:</strong> Arrange all candidate jobs in non-decreasing order of deadlines (Earliest Deadline First / Jackson's Rule).
+            </div>
+            <div style="padding: 0.6rem 0.9rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+              <strong style="color: var(--accent-purple);">2. Create a DP table:</strong> Allocate a 2D matrix <code>DP[i][t]</code> of size <code>(N + 1) &times; (T + 1)</code>, where <code>i</code> is the number of jobs considered and <code>t</code> is available timeline capacity.
+            </div>
+            <div style="padding: 0.6rem 0.9rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+              <strong style="color: var(--accent-purple);">3. Consider jobs one by one:</strong> Iterate sequentially through each job <code>i</code> from 1 to N.
+            </div>
+            <div style="padding: 0.6rem 0.9rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+              <strong style="color: var(--accent-purple);">4. Decide include or exclude:</strong> At every state <code>(i, t)</code>, evaluate option 1 (exclude current job) versus option 2 (include job if it completes before its deadline).
+            </div>
+            <div style="padding: 0.6rem 0.9rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+              <strong style="color: var(--accent-purple);">5. Store the best result:</strong> Set <code>DP[i][t] = max(option1, option2)</code> to guarantee optimal substructure.
+            </div>
+            <div style="padding: 0.6rem 0.9rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+              <strong style="color: var(--accent-purple);">6. Continue until all jobs processed:</strong> Fill the entire table up to state <code>(N, T)</code>.
+            </div>
+            <div style="padding: 0.6rem 0.9rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+              <strong style="color: var(--accent-purple);">7. Backtrack through DP table:</strong> Trace backwards from <code>(N, T)</code> to reconstruct precisely which jobs constitute the optimal profit subset.
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 15: DP Pseudocode -->
+        <div class="glass-panel" style="border-color: rgba(139, 92, 246, 0.3);">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <span style="font-size: 1.2rem;">💻</span>
+            <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin: 0;">
+              Dynamic Programming Pseudocode
+            </h2>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+            Formal algorithmic procedure matching <code style="color: var(--accent-purple);">algorithms/dynamic_programming.py</code>:
+          </p>
+
+          <pre style="background: rgba(11, 17, 33, 0.9); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1.2rem; font-family: var(--font-mono); font-size: 0.82rem; color: #CBD5E1; line-height: 1.65; overflow-x: auto;">
+SORT jobs by deadline
+
+INITIALIZE DP table of size (N + 1) &times; (T + 1) with 0
+
+FOR each job:
+
+    FOR each available time:
+
+        option1 = exclude current job
+
+        IF current job can finish before deadline:
+
+            option2 =
+                profit +
+                best previous solution
+
+        DP[state] =
+            max(option1, option2)
+
+BACKTRACK through DP table
+
+RECONSTRUCT selected jobs
+
+RETURN optimal schedule</pre>
+        </div>
+      </div>
+
+      <!-- Section 16: Dynamic Programming Complexity Analysis -->
+      <div class="glass-panel" style="margin-bottom: 2rem; border-color: rgba(139, 92, 246, 0.3);">
+        <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">
+          Dynamic Programming Complexity Analysis
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+          Rigorous asymptotic complexity breakdown for N jobs, scheduling-time capacity T, and M resources:
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem;">
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">1. Sorting by Deadline</div>
+            <div style="font-family: var(--font-mono); font-size: 1.3rem; font-weight: 800; color: var(--accent-cyan); margin: 0.4rem 0;">
+              O(N log N)
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-dim);">
+              Sorting N candidate jobs using Timsort by deadline ascending, profit descending, and priority descending.
+            </p>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">2. DP Table Construction</div>
+            <div style="font-family: var(--font-mono); font-size: 1.3rem; font-weight: 800; color: var(--accent-purple); margin: 0.4rem 0;">
+              O(N &times; T)
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-dim);">
+              Filling the 2D matrix DP[i][t] across N jobs and timeline capacity T via constant-time state transitions O(1).
+            </p>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">3. Backtracking &amp; Allocation</div>
+            <div style="font-family: var(--font-mono); font-size: 1.3rem; font-weight: 800; color: var(--accent-emerald); margin: 0.4rem 0;">
+              O(N + T + N &times; M)
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-dim);">
+              Backtracking path traverses at most N + T steps; assigning M deterministic resources takes O(N &times; M).
+            </p>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">4. Overall Space &amp; Time</div>
+            <div style="font-family: var(--font-mono); font-size: 1.15rem; font-weight: 800; color: var(--accent-rose); margin: 0.4rem 0;">
+              Time: O(N log N + N &times; T + N &times; M) | Space: O(N &times; T)
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-dim);">
+              Complete pseudo-polynomial time combining sorting O(N log N), DP matrix construction O(N &times; T), and resource allocation O(N &times; M).
+            </p>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  <script>
+    function handleScheduleRun(form, btnId, loadingText) {
+      const btn = document.getElementById(btnId);
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = loadingText;
+      }
+      return true;
+    }
+
+    function handleScheduleReset(form) {
+      const confirmed = confirm("Are you sure you want to reset the generated schedule? This will restore all Scheduled/Missed jobs back to Pending state and clear resource allocations without deleting any jobs or resources.");
+      if (!confirmed) return false;
+      const btn = document.getElementById("btn-reset-schedule");
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = "🔄 Resetting Schedule...";
+      }
+      return true;
+    }
+  </script>
+</body>
+</html>

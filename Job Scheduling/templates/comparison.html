@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Algorithm Comparison | ChronoSync</title>
+  <meta name="description" content="Compare Greedy and Dynamic Programming using the same job scheduling datasets.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <a href="/" class="brand-section">
+        <div class="brand-logo">⚡</div>
+        <div>
+          <div class="brand-title">ChronoSync</div>
+          <div class="brand-subtitle">Job Scheduler</div>
+        </div>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="/" class="nav-link">📊 Dashboard</a></li>
+        <li><a href="/jobs" class="nav-link">📋 Jobs</a></li>
+        <li><a href="/resources" class="nav-link">📦 Resources</a></li>
+        <li><a href="/schedule" class="nav-link">⏱️ Schedule</a></li>
+        <li><a href="/comparison" class="nav-link active">⚖️ Algorithm Comparison</a></li>
+        <li><a href="/about" class="nav-link">📖 About Project</a></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span>Benchmark Suite Active</span>
+        </div>
+        <div style="color: var(--text-dim); margin-top: 4px; font-size: 0.72rem;">
+          Empirical DAA Testbed
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Algorithm Comparison</h1>
+          <p class="page-subtitle">Compare Greedy and Dynamic Programming using the same job scheduling datasets.</p>
+        </div>
+      </header>
+
+      <!-- Section 2: Algorithm Selection & Controls -->
+      <section class="glass-panel" style="margin-bottom: 2rem; border-color: rgba(99, 102, 241, 0.35);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+          <div>
+            <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin: 0 0 0.25rem 0;">
+              Experimental Benchmark Configuration
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">
+              <strong>Fair Comparison Rule:</strong> Both algorithms receive an identical dataset with the exact same jobs, resources, processing times, deadlines, profits, and priorities.
+            </p>
+          </div>
+          <button id="btn-run-comparison" class="btn btn-primary" onclick="runBenchmark()">
+            ⚡ Run Comparison
+          </button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; align-items: end;">
+          <div>
+            <label for="dataset-size-select" style="display: block; font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 0.4rem;">
+              Dataset Size
+            </label>
+            <select id="dataset-size-select" class="form-control" onchange="handleDatasetSizeChange(this.value)">
+              <option value="small" selected>Small (10 jobs)</option>
+              <option value="medium">Medium (50 jobs)</option>
+              <option value="large">Large (100 jobs)</option>
+              <option value="extra_large">Extra Large (500 jobs)</option>
+              <option value="custom">Custom Size...</option>
+            </select>
+          </div>
+
+          <div id="custom-count-wrapper" style="display: none;">
+            <label for="custom-jobs-count" style="display: block; font-size: 0.78rem; text-transform: uppercase; color: var(--accent-cyan); font-weight: 700; margin-bottom: 0.4rem;">
+              Custom Job Count
+            </label>
+            <input type="number" id="custom-jobs-count" class="form-control" min="1" max="1000" value="25" placeholder="1 to 1000">
+          </div>
+
+          <div>
+            <label for="repeat-runs-select" style="display: block; font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 0.4rem;">
+              Repeat Trials (Reliable Timing)
+            </label>
+            <select id="repeat-runs-select" class="form-control">
+              <option value="1">1 run</option>
+              <option value="3">3 runs</option>
+              <option value="5" selected>5 runs (Standard Mean)</option>
+              <option value="10">10 runs (High Precision)</option>
+            </select>
+          </div>
+
+          <div>
+            <div id="benchmark-status" style="font-size: 0.82rem; color: var(--text-dim); padding-bottom: 0.5rem;">
+              Ready to evaluate algorithms.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- DP Exceeded Safety Banner (if triggered) -->
+      <div id="dp-exceeded-alert" class="alert-banner alert-warning" style="display: none; margin-bottom: 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <span style="font-size: 1.2rem;">⚠️</span>
+          <span id="dp-exceeded-text">Dataset exceeds the practical DP demonstration limit.</span>
+        </div>
+      </div>
+
+      <!-- Section 4: Comparison Table -->
+      <section class="glass-panel" style="margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+          <div>
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin: 0 0 0.25rem 0;">
+              Head-to-Head Comparison Table
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">
+              Direct metrics side-by-side calculated from real measured execution on the identical dataset.
+            </p>
+          </div>
+          <div id="active-dataset-tag" class="badge badge-secondary" style="font-size: 0.8rem;">
+            Dataset: 10 jobs
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="cyber-table" id="comparison-metric-table">
+            <thead>
+              <tr>
+                <th style="width: 34%;">Metric</th>
+                <th style="width: 33%; color: #6EE7B7;">⚡ Greedy Algorithm</th>
+                <th style="width: 33%; color: #C4B5FD;">🧠 Dynamic Programming</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Execution Time</strong></td>
+                <td>
+                  <span id="res-greedy-time" style="font-family: var(--font-mono); font-weight: 700; color: var(--accent-emerald); font-size: 1.05rem;">-</span>
+                  <div id="res-greedy-time-sub" style="font-size: 0.72rem; color: var(--text-dim); font-family: var(--font-mono); margin-top: 2px;"></div>
+                </td>
+                <td>
+                  <span id="res-dp-time" style="font-family: var(--font-mono); font-weight: 700; color: #C4B5FD; font-size: 1.05rem;">-</span>
+                  <div id="res-dp-time-sub" style="font-size: 0.72rem; color: var(--text-dim); font-family: var(--font-mono); margin-top: 2px;"></div>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Jobs Scheduled</strong></td>
+                <td><span id="res-greedy-scheduled" style="font-family: var(--font-mono); font-weight: 700; color: #fff;">-</span></td>
+                <td><span id="res-dp-scheduled" style="font-family: var(--font-mono); font-weight: 700; color: #fff;">-</span></td>
+              </tr>
+              <tr>
+                <td><strong>Jobs Missed</strong></td>
+                <td><span id="res-greedy-missed" style="font-family: var(--font-mono); color: #F87171;">-</span></td>
+                <td><span id="res-dp-missed" style="font-family: var(--font-mono); color: #F87171;">-</span></td>
+              </tr>
+              <tr>
+                <td><strong>Total Profit</strong></td>
+                <td><strong id="res-greedy-profit" style="color: var(--accent-amber); font-size: 1.05rem;">-</strong></td>
+                <td><strong id="res-dp-profit" style="color: var(--accent-amber); font-size: 1.05rem;">-</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Total Processing Time</strong></td>
+                <td><span id="res-greedy-proc" style="font-family: var(--font-mono); color: #CBD5E1;">-</span></td>
+                <td><span id="res-dp-proc" style="font-family: var(--font-mono); color: #CBD5E1;">-</span></td>
+              </tr>
+              <tr>
+                <td><strong>Resource Utilization</strong></td>
+                <td><span id="res-greedy-util" style="font-family: var(--font-mono); color: var(--accent-cyan); font-weight: 700;">-</span></td>
+                <td><span id="res-dp-util" style="font-family: var(--font-mono); color: var(--accent-cyan); font-weight: 700;">-</span></td>
+              </tr>
+              <tr>
+                <td><strong>On-Time Completion Rate</strong></td>
+                <td><span id="res-greedy-deadline" style="font-family: var(--font-mono); color: var(--accent-rose); font-weight: 700;">-</span></td>
+                <td><span id="res-dp-deadline" style="font-family: var(--font-mono); color: var(--accent-rose); font-weight: 700;">-</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section 10 & 11: Performance Charts Grid -->
+      <section style="margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+          <div>
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin: 0 0 0.25rem 0;">
+              Visual Performance Benchmarks
+            </h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">
+              Interactive HTML5 Canvas visualizations rendered dynamically from measured benchmark numbers.
+            </p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.5rem;">
+          <!-- Chart 1: Execution Time Chart -->
+          <div class="glass-panel">
+            <h3 style="font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">
+              ⏱️ Execution Time Comparison (s)
+            </h3>
+            <p style="color: var(--text-muted); font-size: 0.78rem; margin-bottom: 1rem;">
+              Measured algorithmic duration across repeated trials (lower is faster).
+            </p>
+            <div style="height: 240px; position: relative;">
+              <canvas id="chart-exec-time" width="400" height="240"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart 2: Total Profit Comparison -->
+          <div class="glass-panel">
+            <h3 style="font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">
+              💰 Total Profit Earned ($)
+            </h3>
+            <p style="color: var(--text-muted); font-size: 0.78rem; margin-bottom: 1rem;">
+              Cumulative value of scheduled jobs under deadline and capacity constraints.
+            </p>
+            <div style="height: 240px; position: relative;">
+              <canvas id="chart-profit" width="400" height="240"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart 3: Jobs Scheduled vs Missed -->
+          <div class="glass-panel">
+            <h3 style="font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">
+              📋 Jobs Scheduled vs. Missed
+            </h3>
+            <p style="color: var(--text-muted); font-size: 0.78rem; margin-bottom: 1rem;">
+              Proportion of jobs accepted into the timeline vs rejected by constraints.
+            </p>
+            <div style="height: 240px; position: relative;">
+              <canvas id="chart-jobs" width="400" height="240"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart 4: Resource Utilization % -->
+          <div class="glass-panel">
+            <h3 style="font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">
+              📦 Resource Utilization (%)
+            </h3>
+            <p style="color: var(--text-muted); font-size: 0.78rem; margin-bottom: 1rem;">
+              Percentage of total available hardware/worker capacity hours consumed.
+            </p>
+            <div style="height: 240px; position: relative;">
+              <canvas id="chart-util" width="400" height="240"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Multi-size Scalability Trend Chart (Section 11) -->
+        <div class="glass-panel" style="margin-top: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
+            <div>
+              <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0 0 0.25rem 0;">
+                📈 Scalability Curve: Dataset Size vs. Average Execution Time
+              </h3>
+              <p style="color: var(--text-muted); font-size: 0.78rem; margin: 0;">
+                Comparing polynomial Greedy scaling vs pseudo-polynomial DP scaling across 10, 50, 100, and 500 jobs.
+              </p>
+            </div>
+            <button class="btn btn-secondary" onclick="loadScalabilityTrend()" style="font-size: 0.78rem; padding: 0.4rem 0.8rem;">
+              🔄 Refresh Scalability Curve
+            </button>
+          </div>
+          <div style="height: 260px; position: relative;">
+            <canvas id="chart-scalability" width="800" height="260"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 16: Experimental Summary -->
+      <section class="glass-panel" style="margin-bottom: 2rem; border-color: rgba(56, 189, 248, 0.3);">
+        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem;">
+          <span style="font-size: 1.25rem;">📝</span>
+          <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin: 0;">
+            Experimental Summary
+          </h2>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+          Factual observations recorded strictly from algorithm execution on the identical dataset:
+        </p>
+        <ul id="summary-observations-list" style="margin: 0; padding-left: 1.5rem; display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.88rem; color: #CBD5E1;">
+          <li>Click <strong>⚡ Run Comparison</strong> above to evaluate the selected dataset size.</li>
+        </ul>
+      </section>
+
+      <!-- Section 5 & 18: Complexity Table & DAA Theory Section -->
+      <section class="glass-panel" style="margin-bottom: 2rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">
+          Complexity Analysis & Asymptotic Formulations
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+          Exact theoretical bounds derived from code inspection of the actual implementations:
+        </p>
+
+        <div class="table-container" style="margin-bottom: 1.5rem;">
+          <table class="cyber-table">
+            <thead>
+              <tr>
+                <th>Algorithm</th>
+                <th>Paradigm</th>
+                <th>Time Complexity</th>
+                <th>Space Complexity</th>
+                <th>Algorithmic Mechanism</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Greedy Algorithm</strong></td>
+                <td><span class="badge badge-greedy">Greedy Heuristic</span></td>
+                <td><code style="color: var(--accent-cyan); font-weight: 700;">O(N log N + N &times; M)</code></td>
+                <td><code style="color: #6EE7B7; font-weight: 700;">O(N + M)</code></td>
+                <td style="font-size: 0.82rem; color: var(--text-dim);">
+                  Timsort ordering O(N log N) followed by single-pass allocation O(N &times; M). Requires linear memory for job records and resource states.
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Dynamic Programming</strong></td>
+                <td><span class="badge badge-dp">Exact Optimization</span></td>
+                <td><code style="color: #C4B5FD; font-weight: 700;">O(N log N + N &times; T + N &times; M)</code></td>
+                <td><code style="color: #C4B5FD; font-weight: 700;">O(N &times; T)</code></td>
+                <td style="font-size: 0.82rem; color: var(--text-dim);">
+                  EDF deadline ordering followed by 2D tabular construction of size (N+1) &times; (T+1). Backtracking takes O(N + T). Requires quadratic/pseudo-polynomial matrix memory.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1.1rem; font-size: 0.85rem; color: #CBD5E1; line-height: 1.65;">
+          <strong style="color: var(--accent-cyan); display: block; margin-bottom: 0.35rem;">
+            Theoretical Complexity vs. Measured Execution Time:
+          </strong>
+          <span>
+            <strong>Important DAA Distinction:</strong> Asymptotic notation (Big-O) describes the growth rate of algorithm resource requirements as input sizes approach infinity. Measured execution time reflects concrete clock wall-time on a specific hardware CPU, operating system, and memory architecture. While empirical runtimes demonstrate polynomial vs pseudo-polynomial trends, real clock times are influenced by constant factors, CPU caching, Python interpreter overhead, and memory bandwidth. Empirical testing corroborates theoretical predictions but does not mathematically prove them.
+          </span>
+          <div style="margin-top: 0.75rem; font-family: var(--font-mono); font-size: 0.78rem; color: #94A3B8;">
+            Definitions: <code>N</code> = Number of candidate jobs | <code>M</code> = Number of available resources | <code>T</code> = Bounded scheduling timeline capacity window.
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 17: Algorithm Explanation Cards -->
+      <section style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+        <!-- Card 1: Greedy Algorithm -->
+        <div class="glass-panel" style="border-color: rgba(16, 185, 129, 0.3);">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <span style="font-size: 1.2rem;">⚡</span>
+            <h3 style="font-size: 1.15rem; font-weight: 700; color: #6EE7B7; margin: 0;">
+              GREEDY ALGORITHM
+            </h3>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.65rem; font-size: 0.84rem; color: #CBD5E1; margin-top: 1rem;">
+            <div style="padding: 0.6rem; background: rgba(15, 23, 42, 0.6); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <strong style="color: #6EE7B7;">Locally Optimal Decisions:</strong> Selects the immediate best candidate at each step according to the multi-criteria priority sort (profit &gt; deadline &gt; priority &gt; burst) without reconsidering earlier choices.
+            </div>
+            <div style="padding: 0.6rem; background: rgba(15, 23, 42, 0.6); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <strong style="color: #6EE7B7;">Constraint Checking:</strong> For each candidate, verifies deadline compatibility and available resource capacity. If feasible, assigns the resource immediately.
+            </div>
+            <div style="padding: 0.6rem; background: rgba(15, 23, 42, 0.6); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <strong style="color: #6EE7B7;">Memory Footprint:</strong> Only requires linear space O(N + M) since it does not build or maintain an intermediate state matrix.
+            </div>
+            <div style="padding: 0.6rem; background: rgba(15, 23, 42, 0.6); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <strong style="color: #6EE7B7;">Trade-off:</strong> Highly efficient and scales easily to thousands of jobs, but can produce suboptimal total profit when combination effects favor multiple smaller jobs over a single large one.
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Dynamic Programming -->
+        <div class="glass-panel" style="border-color: rgba(139, 92, 246, 0.3);">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <span style="font-size: 1.2rem;">🧠</span>
+            <h3 style="font-size: 1.15rem; font-weight: 700; color: #C4B5FD; margin: 0;">
+              DYNAMIC PROGRAMMING
+            </h3>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.65rem; font-size: 0.84rem; color: #CBD5E1; margin-top: 1rem;">
+            <div style="padding: 0.6rem; background: rgba(15, 23, 42, 0.6); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <strong style="color: #C4B5FD;">Overlapping Subproblems:</strong> Formulates the decision state DP[i][t] as the optimal subset achievable using the first i jobs within available scheduling timeline capacity t.
+            </div>
+            <div style="padding: 0.6rem; background: rgba(15, 23, 42, 0.6); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <strong style="color: #C4B5FD;">Intermediate Table Storage:</strong> Solves subproblems once and caches solutions in a 2D matrix, evaluating include vs. exclude transitions at every cell.
+            </div>
+            <div style="padding: 0.6rem; background: rgba(15, 23, 42, 0.6); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <strong style="color: #C4B5FD;">Backtracking Reconstruction:</strong> Reconstructs the exact selected job subset by traversing backwards through the filled matrix.
+            </div>
+            <div style="padding: 0.6rem; background: rgba(15, 23, 42, 0.6); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <strong style="color: #C4B5FD;">Trade-off:</strong> Guarantees optimal global profit for bounded timeline capacity, but memory and execution time scale with O(N &times; T), making large capacities impractical.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 27: How to Demonstrate (Project Presentation Guide) -->
+      <section class="glass-panel" style="margin-bottom: 2rem; border-color: rgba(245, 158, 11, 0.3);">
+        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem;">
+          <span style="font-size: 1.25rem;">🎓</span>
+          <h2 style="font-size: 1.2rem; font-weight: 700; color: #FCD34D; margin: 0;">
+            How to Demonstrate (Viva & Presentation Walkthrough)
+          </h2>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+          Step-by-step presentation roadmap for demonstrating the system during your Design & Analysis of Algorithms project review:
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.85rem; font-size: 0.84rem;">
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.8rem;">
+            <strong style="color: var(--accent-cyan);">1. Add Jobs:</strong> Open <a href="/jobs" style="color: var(--accent-cyan);">Jobs</a> to show job attributes (burst, deadline, profit, priority, required resource).
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.8rem;">
+            <strong style="color: var(--accent-cyan);">2. Add Resources:</strong> Open <a href="/resources" style="color: var(--accent-cyan);">Resources</a> to demonstrate multi-type hardware and worker capacity limits.
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.8rem;">
+            <strong style="color: var(--accent-cyan);">3. Run Greedy:</strong> Click "Run Greedy Algorithm" on <a href="/schedule" style="color: var(--accent-cyan);">Schedule</a> to show greedy dispatch.
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.8rem;">
+            <strong style="color: var(--accent-cyan);">4. View Schedule:</strong> Inspect the resulting timeline, assigned resources, and missed jobs reasons.
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.8rem;">
+            <strong style="color: var(--accent-cyan);">5. Reset Schedule:</strong> Click "Reset Schedule" to restore all jobs to Pending without deleting data.
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.8rem;">
+            <strong style="color: var(--accent-cyan);">6. Run DP:</strong> Click "Run Dynamic Programming" to execute the 0/1 deadline-constrained DP engine.
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.8rem;">
+            <strong style="color: var(--accent-cyan);">7. View DP Table:</strong> Expand "View DP Table" to show the live matrix DP[i][t] and backtracking steps.
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.8rem;">
+            <strong style="color: var(--accent-cyan);">8. Open Comparison:</strong> Navigate to this <a href="/comparison" style="color: var(--accent-cyan);">Algorithm Comparison</a> tab.
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.8rem;">
+            <strong style="color: var(--accent-cyan);">9. Select Dataset:</strong> Choose Small (10) or Medium (50) to demonstrate identical input benchmarking.
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.8rem;">
+            <strong style="color: var(--accent-cyan);">10. Run Comparison:</strong> Click "Run Comparison" to trigger live execution across 5 repeated trials.
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.8rem;">
+            <strong style="color: var(--accent-cyan);">11. Explain Runtime:</strong> Contrast the measured microsecond runtimes between Greedy and DP.
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.8rem;">
+            <strong style="color: var(--accent-cyan);">12. Explain Complexity:</strong> Reference the theoretical O(N log N) vs O(N &times; T) complexity table.
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.8rem; grid-column: 1 / -1;">
+            <strong style="color: var(--accent-cyan);">13. Explain Trade-offs:</strong> Conclude by discussing speed vs optimality trade-offs: Greedy is faster and lightweight; DP achieves exact optimal profit when state space permits.
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 9: Historical Benchmark Records in Database -->
+      {% if history %}
+      <section class="glass-panel" style="margin-bottom: 2rem;">
+        <h2 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">
+          Database Benchmark History (benchmark_results table)
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.82rem; margin-bottom: 1rem;">
+          Persisted empirical trial records recorded in SQLite:
+        </p>
+        <div class="table-container" style="max-height: 280px; overflow-y: auto;">
+          <table class="cyber-table" style="font-size: 0.8rem;">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Dataset</th>
+                <th>Jobs</th>
+                <th>Algorithm</th>
+                <th>Avg Execution Time</th>
+                <th>Profit</th>
+                <th>Scheduled</th>
+                <th>Missed</th>
+                <th>Utilization</th>
+                <th>Success Rate</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for h in history %}
+              <tr>
+                <td><code>#{{ h.id }}</code></td>
+                <td>{{ h.dataset_size }}</td>
+                <td>{{ h.num_jobs }}</td>
+                <td>
+                  <span class="badge {{ 'badge-dp' if h.algorithm == 'Dynamic Programming' else 'badge-greedy' }}">
+                    {{ h.algorithm }}
+                  </span>
+                </td>
+                <td style="font-family: var(--font-mono); color: var(--accent-emerald);">{{ "%.6f"|format(h.execution_time) }} s</td>
+                <td>${{ h.total_profit }}</td>
+                <td>{{ h.jobs_scheduled }}</td>
+                <td>{{ h.jobs_missed }}</td>
+                <td>{{ h.resource_utilization }}%</td>
+                <td>{{ h.deadline_success_rate }}%</td>
+                <td style="font-size: 0.72rem; color: var(--text-dim);">{{ h.created_at }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {% endif %}
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  <script>
+    // Global chart cache
+    let currentComparisonData = null;
+
+    function handleDatasetSizeChange(val) {
+      const customWrapper = document.getElementById("custom-count-wrapper");
+      if (val === "custom") {
+        customWrapper.style.display = "block";
+      } else {
+        customWrapper.style.display = "none";
+      }
+    }
+
+    async function runBenchmark() {
+      const btn = document.getElementById("btn-run-comparison");
+      const statusEl = document.getElementById("benchmark-status");
+      const dpAlert = document.getElementById("dp-exceeded-alert");
+      const sizeSelect = document.getElementById("dataset-size-select").value;
+      const customCount = document.getElementById("custom-jobs-count").value;
+      const repeatRuns = document.getElementById("repeat-runs-select").value;
+
+      btn.disabled = true;
+      btn.innerText = "⏳ Running Trials...";
+      statusEl.innerText = "Benchmarking Greedy and DP on identical dataset...";
+      dpAlert.style.display = "none";
+
+      try {
+        const payload = {
+          dataset_size: sizeSelect,
+          custom_count: sizeSelect === "custom" ? parseInt(customCount) : null,
+          repeat_runs: parseInt(repeatRuns)
+        };
+
+        const resp = await fetch("/comparison/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await resp.json();
+
+        if (!data.success) {
+          showToast(data.error || "Benchmark failed", "error");
+          statusEl.innerText = "Benchmark failed.";
+          return;
+        }
+
+        currentComparisonData = data;
+        updateComparisonUI(data);
+        renderAllCharts(data);
+        showToast(`Benchmarked ${data.num_jobs} jobs across ${data.repeat_runs} runs!`, "success");
+        statusEl.innerText = `Completed ${data.repeat_runs} runs on ${data.num_jobs} jobs.`;
+
+      } catch (err) {
+        showToast("Error connecting to benchmark endpoint.", "error");
+        statusEl.innerText = "Network / execution error.";
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "⚡ Run Comparison";
+      }
+    }
+
+    function updateComparisonUI(data) {
+      document.getElementById("active-dataset-tag").innerText = `Dataset: ${data.num_jobs} jobs (${data.dataset_size})`;
+
+      // Greedy metrics
+      const g = data.greedy;
+      document.getElementById("res-greedy-time").innerText = `${g.avg_execution_time.toFixed(6)} s`;
+      document.getElementById("res-greedy-time-sub").innerText = `min: ${g.min_execution_time.toFixed(6)}s | max: ${g.max_execution_time.toFixed(6)}s`;
+      document.getElementById("res-greedy-scheduled").innerText = g.jobs_scheduled;
+      document.getElementById("res-greedy-missed").innerText = g.jobs_missed;
+      document.getElementById("res-greedy-profit").innerText = `$${g.total_profit}`;
+      document.getElementById("res-greedy-proc").innerText = `${g.total_processing_time} hrs`;
+      document.getElementById("res-greedy-util").innerText = `${g.resource_utilization}%`;
+      document.getElementById("res-greedy-deadline").innerText = g.deadline_success_rate;
+
+      // DP metrics
+      const dp = data.dynamic_programming;
+      const dpAlert = document.getElementById("dp-exceeded-alert");
+      const dpText = document.getElementById("dp-exceeded-text");
+
+      if (data.dp_exceeded) {
+        dpAlert.style.display = "block";
+        dpText.innerText = data.dp_exceeded_message;
+
+        document.getElementById("res-dp-time").innerText = "Exceeded Limit";
+        document.getElementById("res-dp-time-sub").innerText = "Bypassed for safety";
+        document.getElementById("res-dp-scheduled").innerText = "N/A";
+        document.getElementById("res-dp-missed").innerText = "N/A";
+        document.getElementById("res-dp-profit").innerText = "N/A";
+        document.getElementById("res-dp-proc").innerText = "N/A";
+        document.getElementById("res-dp-util").innerText = "N/A";
+        document.getElementById("res-dp-deadline").innerText = "N/A";
+      } else {
+        dpAlert.style.display = "none";
+        document.getElementById("res-dp-time").innerText = `${dp.avg_execution_time.toFixed(6)} s`;
+        document.getElementById("res-dp-time-sub").innerText = `min: ${dp.min_execution_time.toFixed(6)}s | max: ${dp.max_execution_time.toFixed(6)}s`;
+        document.getElementById("res-dp-scheduled").innerText = dp.jobs_scheduled;
+        document.getElementById("res-dp-missed").innerText = dp.jobs_missed;
+        document.getElementById("res-dp-profit").innerText = `$${dp.total_profit}`;
+        document.getElementById("res-dp-proc").innerText = `${dp.total_processing_time} hrs`;
+        document.getElementById("res-dp-util").innerText = `${dp.resource_utilization}%`;
+        document.getElementById("res-dp-deadline").innerText = dp.deadline_success_rate;
+      }
+
+      // Experimental Summary list
+      const obsList = document.getElementById("summary-observations-list");
+      obsList.innerHTML = "";
+      data.observations.forEach(obs => {
+        const li = document.createElement("li");
+        li.innerText = obs;
+        obsList.appendChild(li);
+      });
+    }
+
+    // =========================================================================
+    // VANILLA JAVASCRIPT CANVAS CHART RENDERING (Zero Dependencies)
+    // =========================================================================
+    function drawBarChart(canvasId, title, labels, values, colors, unit = "") {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const dpr = window.devicePixelRatio || 1;
+      
+      const width = canvas.parentElement.clientWidth || 380;
+      const height = 240;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = width + "px";
+      canvas.style.height = height + "px";
+      ctx.scale(dpr, dpr);
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Margins
+      const padTop = 30;
+      const padBottom = 35;
+      const padLeft = 45;
+      const padRight = 20;
+
+      const chartW = width - padLeft - padRight;
+      const chartH = height - padTop - padBottom;
+
+      const numValues = values.map(v => (v === null || v === undefined || isNaN(v)) ? 0 : Number(v));
+      const maxVal = Math.max(...numValues, 1);
+      const niceMax = Math.ceil(maxVal * 1.15) || 1;
+
+      // Draw gridlines
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+      ctx.lineWidth = 1;
+      const gridTicks = 4;
+      for (let i = 0; i <= gridTicks; i++) {
+        const y = padTop + (chartH / gridTicks) * i;
+        ctx.beginPath();
+        ctx.moveTo(padLeft, y);
+        ctx.lineTo(width - padRight, y);
+        ctx.stroke();
+
+        const tickVal = ((niceMax / gridTicks) * (gridTicks - i));
+        ctx.fillStyle = "#64748B";
+        ctx.font = "10px JetBrains Mono, monospace";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        const tickStr = tickVal < 1 && tickVal > 0 ? tickVal.toFixed(4) : Math.round(tickVal).toString();
+        ctx.fillText(tickStr, padLeft - 6, y);
+      }
+
+      // Draw bars
+      const barCount = labels.length;
+      const barWidth = Math.min(65, (chartW / barCount) * 0.55);
+      const barSpacing = chartW / barCount;
+
+      labels.forEach((label, idx) => {
+        const val = numValues[idx];
+        const isNa = (values[idx] === null || values[idx] === "N/A" || isNaN(values[idx]));
+        const barH = isNa ? 0 : (val / niceMax) * chartH;
+        const x = padLeft + barSpacing * idx + (barSpacing - barWidth) / 2;
+        const y = padTop + chartH - barH;
+
+        if (!isNa && barH > 0) {
+          // Bar gradient fill
+          const grad = ctx.createLinearGradient(0, y, 0, y + barH);
+          grad.addColorStop(0, colors[idx]);
+          grad.addColorStop(1, colors[idx] + "66");
+          ctx.fillStyle = grad;
+          
+          ctx.beginPath();
+          ctx.roundRect(x, y, barWidth, barH, [4, 4, 0, 0]);
+          ctx.fill();
+
+          // Bar top border
+          ctx.strokeStyle = colors[idx];
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + barWidth, y);
+          ctx.stroke();
+
+          // Value text above bar
+          ctx.fillStyle = "#fff";
+          ctx.font = "11px JetBrains Mono, monospace";
+          ctx.textAlign = "center";
+          let valDisplay = val < 1 && val > 0 ? val.toFixed(5) : val.toLocaleString();
+          if (unit) valDisplay += " " + unit;
+          ctx.fillText(valDisplay, x + barWidth / 2, y - 6);
+        } else if (isNa) {
+          ctx.fillStyle = "#F87171";
+          ctx.font = "11px Plus Jakarta Sans, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("Exceeded Limit", x + barWidth / 2, padTop + chartH / 2);
+        }
+
+        // X-axis label
+        ctx.fillStyle = "#94A3B8";
+        ctx.font = "11px Plus Jakarta Sans, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(label, x + barWidth / 2, height - 12);
+      });
+    }
+
+    function renderAllCharts(data) {
+      const g = data.greedy;
+      const dp = data.dynamic_programming;
+      const isDpSafe = !data.dp_exceeded;
+
+      // 1. Execution Time Chart (in seconds or ms)
+      const gTime = g.avg_execution_time;
+      const dpTime = isDpSafe ? dp.avg_execution_time : null;
+      drawBarChart("chart-exec-time", "Execution Time", ["Greedy", "DP"], [gTime, dpTime], ["#10B981", "#8B5CF6"], "s");
+
+      // 2. Profit Chart
+      const gProf = g.total_profit;
+      const dpProf = isDpSafe ? dp.total_profit : null;
+      drawBarChart("chart-profit", "Total Profit", ["Greedy", "DP"], [gProf, dpProf], ["#F59E0B", "#8B5CF6"], "$");
+
+      // 3. Jobs Scheduled Chart
+      const gSched = g.jobs_scheduled;
+      const dpSched = isDpSafe ? dp.jobs_scheduled : null;
+      drawBarChart("chart-jobs", "Jobs Scheduled", ["Greedy", "DP"], [gSched, dpSched], ["#38BDF8", "#8B5CF6"], "jobs");
+
+      // 4. Resource Utilization Chart
+      const gUtil = g.resource_utilization;
+      const dpUtil = isDpSafe ? dp.resource_utilization : null;
+      drawBarChart("chart-util", "Resource Utilization", ["Greedy", "DP"], [gUtil, dpUtil], ["#EC4899", "#8B5CF6"], "%");
+    }
+
+    async function loadScalabilityTrend() {
+      const canvas = document.getElementById("chart-scalability");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const dpr = window.devicePixelRatio || 1;
+      
+      const width = canvas.parentElement.clientWidth || 800;
+      const height = 260;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = width + "px";
+      canvas.style.height = height + "px";
+      ctx.scale(dpr, dpr);
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "rgba(148, 163, 184, 0.7)";
+      ctx.font = "12px Plus Jakarta Sans, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Computing multi-size scalability curve (10, 50, 100, 500 jobs)...", width / 2, height / 2);
+
+      try {
+        const resp = await fetch("/api/benchmark/trend");
+        const resJson = await resp.json();
+        if (!resJson.success) return;
+        const trend = resJson.trend;
+
+        ctx.clearRect(0, 0, width, height);
+
+        const padTop = 30;
+        const padBottom = 40;
+        const padLeft = 65;
+        const padRight = 30;
+        const chartW = width - padLeft - padRight;
+        const chartH = height - padTop - padBottom;
+
+        const allVals = [...trend.greedy_times, ...(trend.dp_times.filter(v => v !== null))];
+        const maxVal = Math.max(...allVals, 0.005);
+        const niceMax = maxVal * 1.25;
+
+        // Grid lines
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) {
+          const y = padTop + (chartH / 4) * i;
+          ctx.beginPath();
+          ctx.moveTo(padLeft, y);
+          ctx.lineTo(width - padRight, y);
+          ctx.stroke();
+
+          const tickVal = (niceMax / 4) * (4 - i);
+          ctx.fillStyle = "#64748B";
+          ctx.font = "10px JetBrains Mono, monospace";
+          ctx.textAlign = "right";
+          ctx.textBaseline = "middle";
+          ctx.fillText(tickVal.toFixed(4) + " s", padLeft - 8, y);
+        }
+
+        const pointSpacing = chartW / (trend.labels.length - 1);
+
+        // Helper to plot a series
+        function plotLine(series, color, labelName) {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+
+          let first = true;
+          series.forEach((val, idx) => {
+            if (val === null) return;
+            const x = padLeft + idx * pointSpacing;
+            const y = padTop + chartH - (val / niceMax) * chartH;
+            if (first) {
+              ctx.moveTo(x, y);
+              first = false;
+            } else {
+              ctx.lineTo(x, y);
+            }
+          });
+          ctx.stroke();
+
+          // Draw points
+          series.forEach((val, idx) => {
+            const x = padLeft + idx * pointSpacing;
+            if (val !== null) {
+              const y = padTop + chartH - (val / niceMax) * chartH;
+              ctx.fillStyle = color;
+              ctx.beginPath();
+              ctx.arc(x, y, 4.5, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.strokeStyle = "#0F172A";
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+
+              // Point label
+              ctx.fillStyle = "#fff";
+              ctx.font = "10px JetBrains Mono, monospace";
+              ctx.textAlign = "center";
+              ctx.fillText(val.toFixed(4) + "s", x, y - 8);
+            } else {
+              // Exceeded marker
+              const y = padTop + 20;
+              ctx.fillStyle = "#F87171";
+              ctx.font = "10px Plus Jakarta Sans, sans-serif";
+              ctx.textAlign = "center";
+              ctx.fillText("DP Exceeded", x, y);
+            }
+          });
+        }
+
+        // Plot Greedy series (Green)
+        plotLine(trend.greedy_times, "#10B981", "Greedy");
+        // Plot DP series (Purple)
+        plotLine(trend.dp_times, "#8B5CF6", "Dynamic Programming");
+
+        // X-axis labels
+        trend.labels.forEach((label, idx) => {
+          const x = padLeft + idx * pointSpacing;
+          ctx.fillStyle = "#94A3B8";
+          ctx.font = "11px Plus Jakarta Sans, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(label, x, height - 12);
+        });
+
+        // Legend
+        ctx.fillStyle = "#10B981";
+        ctx.fillRect(width - 240, 10, 12, 12);
+        ctx.fillStyle = "#CBD5E1";
+        ctx.font = "11px Plus Jakarta Sans, sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText("Greedy O(N log N)", width - 222, 20);
+
+        ctx.fillStyle = "#8B5CF6";
+        ctx.fillRect(width - 120, 10, 12, 12);
+        ctx.fillStyle = "#CBD5E1";
+        ctx.fillText("DP O(N × T)", width - 102, 20);
+
+      } catch (e) {
+        ctx.fillText("Failed to load scalability trend.", width / 2, height / 2);
+      }
+    }
+
+    // Auto-execute default benchmark on page load
+    document.addEventListener("DOMContentLoaded", () => {
+      runBenchmark();
+      loadScalabilityTrend();
+    });
+
+    window.addEventListener("resize", () => {
+      if (currentComparisonData) {
+        renderAllCharts(currentComparisonData);
+      }
+    });
+  </script>
+</body>
+</html>

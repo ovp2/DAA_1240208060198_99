@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resource Details: {{ resource.resource_id }} | ChronoSync</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <a href="/" class="brand-section">
+        <div class="brand-logo">⚡</div>
+        <div>
+          <div class="brand-title">ChronoSync</div>
+          <div class="brand-subtitle">Job Scheduler</div>
+        </div>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="/" class="nav-link">📊 Dashboard</a></li>
+        <li><a href="/jobs" class="nav-link">📋 Jobs</a></li>
+        <li><a href="/resources" class="nav-link active">📦 Resources</a></li>
+        <li><a href="/schedule" class="nav-link">⏱️ Schedule</a></li>
+        <li><a href="/comparison" class="nav-link">⚖️ Algorithm Comparison</a></li>
+        <li><a href="/about" class="nav-link">📖 About Project</a></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span>Module Online</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Resource Details</h1>
+          <p class="page-subtitle">Comprehensive operational status and job assignment telemetry</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+          <a href="/resources" class="btn btn-secondary">← Back to Resources</a>
+          <a href="/resources/edit/{{ resource.id }}" class="btn btn-primary">✏️ Edit Resource</a>
+        </div>
+      </header>
+
+      <!-- Resource Information Cards -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+        <!-- Left: Core Properties -->
+        <div class="glass-panel">
+          <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem;">
+            Resource Metadata
+          </h2>
+
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: var(--text-muted); font-size: 0.9rem;">Resource ID:</span>
+              <span style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 800; color: var(--accent-cyan);">
+                {{ resource.resource_id }}
+              </span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: var(--text-muted); font-size: 0.9rem;">Resource Name:</span>
+              <strong style="color: #fff; font-size: 1rem;">{{ resource.resource_name }}</strong>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: var(--text-muted); font-size: 0.9rem;">Resource Type:</span>
+              <span class="badge badge-greedy" style="font-size: 0.85rem;">{{ resource.resource_type }}</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: var(--text-muted); font-size: 0.9rem;">Available Hours:</span>
+              <span style="font-family: var(--font-mono); font-size: 1rem; color: #fff;">{{ resource.available_hours }} hrs / day</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: var(--text-muted); font-size: 0.9rem;">Current Status:</span>
+              {% if resource.status == 'Available' %}
+                <span class="status-badge status-available">● Available</span>
+              {% elif resource.status == 'Busy' %}
+                <span class="status-badge status-busy">● Busy</span>
+              {% else %}
+                <span class="status-badge status-unavailable">● Unavailable</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Current Assigned Jobs -->
+        <div class="glass-panel">
+          <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem;">
+            Current Assigned Jobs
+          </h2>
+
+          {% if assigned_jobs %}
+            <div class="table-container">
+              <table class="cyber-table">
+                <thead>
+                  <tr>
+                    <th>Job Name</th>
+                    <th>Burst</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for job in assigned_jobs %}
+                  <tr>
+                    <td><strong>{{ job.name }}</strong></td>
+                    <td>{{ job.burst_time }} units</td>
+                    <td><span class="badge badge-warning">P{{ job.priority }}</span></td>
+                    <td><span class="badge badge-success">{{ job.status }}</span></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 180px; text-align: center; color: var(--text-dim); gap: 0.5rem;">
+              <span style="font-size: 2rem;">📋</span>
+              <p style="font-size: 0.95rem; font-weight: 600; color: var(--text-muted);">No jobs currently assigned.</p>
+              <p style="font-size: 0.8rem; max-width: 280px;">This resource is free and unencumbered by scheduled process workloads.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

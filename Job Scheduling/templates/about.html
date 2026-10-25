@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About Project | ChronoSync</title>
+  <meta name="description" content="Design and Analysis of Algorithms (DAA) Theoretical Architecture, Mathematical Formulations, and Empirical Methodology.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <!-- KaTeX for rendering mathematical notations and DAA formulations -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+  <style>
+    .katex {
+      font-size: 1.05em;
+      color: inherit;
+    }
+    .katex-html {
+      color: inherit;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <a href="/" class="brand-section">
+        <div class="brand-logo">⚡</div>
+        <div>
+          <div class="brand-title">ChronoSync</div>
+          <div class="brand-subtitle">Job Scheduler</div>
+        </div>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="/" class="nav-link">📊 Dashboard</a></li>
+        <li><a href="/jobs" class="nav-link">📋 Jobs</a></li>
+        <li><a href="/resources" class="nav-link">📦 Resources</a></li>
+        <li><a href="/schedule" class="nav-link">⏱️ Schedule</a></li>
+        <li><a href="/comparison" class="nav-link">⚖️ Algorithm Comparison</a></li>
+        <li><a href="/about" class="nav-link active">📖 About Project</a></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span>DAA Project Architecture</span>
+        </div>
+        <div style="color: var(--text-dim); margin-top: 4px; font-size: 0.72rem;">
+          Academic Presentation Ready
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Project Overview & DAA Architecture</h1>
+          <p class="page-subtitle">Algorithmic foundations, problem formulation, mathematical models, and empirical benchmark trade-offs</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+          <a href="/comparison" class="btn btn-primary">⚖️ Run Comparison</a>
+          <a href="/schedule" class="btn btn-secondary">⚡ View Schedule</a>
+        </div>
+      </header>
+
+      <!-- Grid 1: Problem Statement & Objectives -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="glass-panel" style="border-color: rgba(99, 102, 241, 0.35);">
+          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+            <div style="font-size: 1.5rem;">🎯</div>
+            <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff;">1. Problem Statement</h2>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; margin-bottom: 0.75rem;">
+            Given a set of <strong style="color: #fff;">$n$ candidate jobs</strong> $\mathcal{J} = \{J_1, J_2, \dots, J_n\}$ where each job $J_i$ requires processing duration $p_i$, has arrival time $a_i$, completion deadline $d_i$, priority rank $\pi_i$, and yields monetary reward / profit $v_i$.
+          </p>
+          <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">
+            The objective is to allocate non-overlapping execution intervals on <strong style="color: #fff;">$m$ heterogeneous resources</strong> $\mathcal{R} = \{R_1, \dots, R_m\}$ with finite operating capacities $H_k$ to <strong style="color: var(--accent-emerald);">maximize cumulative profit</strong> $\sum_{J_i \in \mathcal{S}} v_i$ subject to completion deadlines $C_i \le d_i$ and machine resource compatibilities without collision.
+          </p>
+        </div>
+
+        <div class="glass-panel" style="border-color: rgba(56, 189, 248, 0.35);">
+          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+            <div style="font-size: 1.5rem;">🚀</div>
+            <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff;">2. Project Objectives</h2>
+          </div>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.65rem; font-size: 0.88rem; color: var(--text-muted);">
+            <li style="display: flex; align-items: flex-start; gap: 0.5rem;">
+              <span style="color: var(--accent-cyan); font-weight: 700;">✓</span>
+              <span><strong>DAA Algorithmic Testbed:</strong> Compare Greedy Heuristic decisions against exact Dynamic Programming optimization.</span>
+            </li>
+            <li style="display: flex; align-items: flex-start; gap: 0.5rem;">
+              <span style="color: var(--accent-cyan); font-weight: 700;">✓</span>
+              <span><strong>Fair Experimental Controls:</strong> Ensure 100% identical inputs (jobs, resources, deadlines, profits) for unbiased benchmarking.</span>
+            </li>
+            <li style="display: flex; align-items: flex-start; gap: 0.5rem;">
+              <span style="color: var(--accent-cyan); font-weight: 700;">✓</span>
+              <span><strong>Multi-Objective Telemetry:</strong> Quantify execution time, profit, scheduled/missed jobs, resource utilization, and deadline compliance.</span>
+            </li>
+            <li style="display: flex; align-items: flex-start; gap: 0.5rem;">
+              <span style="color: var(--accent-cyan); font-weight: 700;">✓</span>
+              <span><strong>Asymptotic Rigor:</strong> Clarify the fundamental distinction between theoretical Big-O complexity and empirical wall-clock measurements.</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Section: Algorithms Used -->
+      <div class="glass-panel" style="margin-bottom: 2rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">
+          3. Algorithms Used & Mathematical Formulations
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+          Detailed breakdown of the two central algorithmic paradigms implemented in the scheduling engine:
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+          <!-- Card: Greedy Approach -->
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: var(--radius-md); padding: 1.5rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+              <span class="badge badge-greedy">Greedy Approach</span>
+              <code style="color: var(--accent-cyan); font-family: var(--font-mono); font-size: 0.8rem;">O(n log n + n·m)</code>
+            </div>
+            <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.6rem;">
+              Priority & Density Heuristic
+            </h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.85rem;">
+              The Greedy algorithm evaluates jobs based on a multi-tier heuristic ranking:
+            </p>
+            <div style="background: rgba(10, 14, 26, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.85rem; font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-cyan); margin-bottom: 1rem;">
+              Key(J_i) = (d_i &uarr;, -(v_i / p_i) &darr;, &pi;_i &uarr;)
+            </div>
+            <ul style="list-style: none; font-size: 0.82rem; color: var(--text-dim); display: flex; flex-direction: column; gap: 0.45rem;">
+              <li>• <strong>Step 1:</strong> Sort candidate jobs by deadline ascending, profit-to-burst density descending, and priority rank.</li>
+              <li>• <strong>Step 2:</strong> Sequentially inspect each job against available compatible resources.</li>
+              <li>• <strong>Step 3:</strong> Schedule job on the earliest available machine if completion $C_i \le d_i$.</li>
+              <li>• <strong>Step 4:</strong> Irrevocably commit decisions in single pass without backtracking.</li>
+              <li>• <strong>Memory:</strong> $\mathcal{O}(n + m)$ linear working space.</li>
+            </ul>
+          </div>
+
+          <!-- Card: Dynamic Programming Approach -->
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: var(--radius-md); padding: 1.5rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+              <span class="badge badge-dp">Dynamic Programming</span>
+              <code style="color: var(--accent-purple); font-family: var(--font-mono); font-size: 0.8rem;">O(n log n + n·T + n·m)</code>
+            </div>
+            <h3 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.6rem;">
+              Optimal Substructure & Recurrence
+            </h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.85rem;">
+              Dynamic Programming decomposes the deadline-constrained problem into overlapping subproblems over states $(i, t)$:
+            </p>
+            <div style="background: rgba(10, 14, 26, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.85rem; font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent-purple); margin-bottom: 1rem; overflow-x: auto;">
+              DP[i][t] = max(DP[i-1][t], DP[i-1][t - p_i] + v_i)<br>
+              &forall; t &in; [p_i, min(T, d_i)]
+            </div>
+            <ul style="list-style: none; font-size: 0.82rem; color: var(--text-dim); display: flex; flex-direction: column; gap: 0.45rem;">
+              <li>• <strong>Step 1:</strong> Sort jobs by deadlines to ensure chronological compatibility.</li>
+              <li>• <strong>Step 2:</strong> Compute 2D state matrix $\text{DP}[0 \dots n][0 \dots T]$ storing optimal profit values.</li>
+              <li>• <strong>Step 3:</strong> Backtrack through table from $(n, T^*)$ to reconstruct the exact subset of selected jobs.</li>
+              <li>• <strong>Step 4:</strong> Assign reconstructed jobs to feasible resources preserving non-overlapping windows.</li>
+              <li>• <strong>Memory:</strong> $\mathcal{O}(n \cdot T)$ 2D state table (bounded by capacity limit).</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Resource Allocation & Modeling -->
+      <div class="glass-panel" style="margin-bottom: 2rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">
+          4. Resource Allocation & Constraint Verification
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.25rem;">
+          Resources represent real-world physical and human constraints configured with deterministic properties:
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1rem;">
+            <div style="font-size: 1.1rem; margin-bottom: 0.4rem;">🏷️ <strong>Identification</strong></div>
+            <p style="font-size: 0.82rem; color: var(--text-muted);">
+              Unique alphanumeric Resource ID (e.g., <code>R001</code>) and descriptive name with primary key integrity.
+            </p>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1rem;">
+            <div style="font-size: 1.1rem; margin-bottom: 0.4rem;">🏭 <strong>Resource Types</strong></div>
+            <p style="font-size: 0.82rem; color: var(--text-muted);">
+              Categorized into <em>Employee</em>, <em>Machine</em>, <em>Computer</em>, <em>Vehicle</em>, and <em>Other</em>.
+            </p>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1rem;">
+            <div style="font-size: 1.1rem; margin-bottom: 0.4rem;">⏱️ <strong>Operating Capacity</strong></div>
+            <p style="font-size: 0.82rem; color: var(--text-muted);">
+              Available hours $H_k \in (0, 24.0]$ representing the timeline shift boundary for each resource.
+            </p>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1rem;">
+            <div style="font-size: 1.1rem; margin-bottom: 0.4rem;">🛡️ <strong>Safety Integrity</strong></div>
+            <p style="font-size: 0.82rem; color: var(--text-muted);">
+              Delete protection blocks removal of resources currently allocated in active schedules.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Complexity Analysis -->
+      <div class="glass-panel" style="margin-bottom: 2rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">
+          5. Complexity Analysis: Theoretical vs. Measured Time
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.25rem;">
+          Careful differentiation between formal asymptotic Big-O bounds and physical wall-clock performance:
+        </p>
+
+        <div class="table-container" style="margin-bottom: 1.5rem;">
+          <table class="cyber-table">
+            <thead>
+              <tr>
+                <th>Algorithm</th>
+                <th>Time Complexity</th>
+                <th>Space Complexity</th>
+                <th>Practical Scalability Limit</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Greedy Algorithm</strong></td>
+                <td><code style="color: var(--accent-cyan);">&Omicron;(n log n + n &times; m)</code></td>
+                <td><code style="color: var(--accent-cyan);">&Omicron;(n + m)</code></td>
+                <td><span class="badge badge-success">High (&ge; 100,000 jobs)</span></td>
+              </tr>
+              <tr>
+                <td><strong>Dynamic Programming</strong></td>
+                <td><code style="color: var(--accent-purple);">&Omicron;(n log n + n &times; T)</code></td>
+                <td><code style="color: var(--accent-purple);">&Omicron;(n &times; T)</code></td>
+                <td><span class="badge badge-warning">Capacity Bounded (N &le; 200)</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="alert-banner alert-warning" style="margin-top: 1rem;">
+          <div>
+            <strong style="color: #fff; display: block; margin-bottom: 0.25rem;">Critical DAA Distinction:</strong>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">
+              Theoretical complexity characterizes asymptotic growth as $n \to \infty$. Measured wall-clock time includes implementation constant factors, memory cache locality, CPU branch prediction, and Python runtime overhead. Empirical testing validates practical trade-offs but does not replace mathematical proof.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Benchmarking & Tech Stack -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="glass-panel">
+          <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem;">
+            6. Performance Testing Methodology
+          </h2>
+          <p style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.6; margin-bottom: 0.75rem;">
+            Empirical benchmarking utilizes Python's nanosecond-resolution <code style="color: var(--accent-cyan);">time.perf_counter()</code>, isolating algorithmic execution from database queries, template rendering, and browser networking.
+          </p>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.82rem; color: var(--text-dim);">
+            <li>✓ <strong>Identical Datasets:</strong> Seeded deterministic generator produces identical deep-copied inputs.</li>
+            <li>✓ <strong>Multi-Run Trials:</strong> 5 repeat executions compute Average, Minimum, and Maximum timing.</li>
+            <li>✓ <strong>DP Capacity Guard:</strong> Safely prevents memory exhaustion when $N \ge 500$ or state space exceeds $300,000$.</li>
+            <li>✓ <strong>Data Isolation:</strong> Benchmark runs in-memory and never modifies active database schedules.</li>
+          </ul>
+        </div>
+
+        <div class="glass-panel">
+          <h2 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem;">
+            7. Technology Stack
+          </h2>
+          <p style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.6; margin-bottom: 0.75rem;">
+            Built with a clean, lightweight, and modern architecture without unnecessary heavy frameworks:
+          </p>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.6rem;">
+            <span class="badge" style="background: rgba(99, 102, 241, 0.2); border-color: var(--accent-primary); color: #fff;">🐍 Python 3.14</span>
+            <span class="badge" style="background: rgba(56, 189, 248, 0.2); border-color: var(--accent-cyan); color: #fff;">🌶️ Flask 3.1</span>
+            <span class="badge" style="background: rgba(16, 185, 129, 0.2); border-color: var(--accent-emerald); color: #fff;">💾 SQLite 3</span>
+            <span class="badge" style="background: rgba(245, 158, 11, 0.2); border-color: var(--accent-amber); color: #fff;">🎨 HTML5 & CSS3 Glassmorphism</span>
+            <span class="badge" style="background: rgba(236, 72, 153, 0.2); border-color: var(--accent-rose); color: #fff;">⚡ Vanilla JavaScript (Canvas API)</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      function renderMath() {
+        if (typeof renderMathInElement === "function") {
+          renderMathInElement(document.body, {
+            delimiters: [
+              { left: "$$", right: "$$", display: true },
+              { left: "$", right: "$", display: false },
+              { left: "\\(", right: "\\)", display: false },
+              { left: "\\[", right: "\\]", display: true }
+            ],
+            ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"],
+            throwOnError: false
+          });
+          return true;
+        }
+        return false;
+      }
+
+      // Try rendering on DOM ready or window load
+      if (!renderMath()) {
+        window.addEventListener("load", function() {
+          if (!renderMath()) {
+            // Robust offline fallback if CDN is unreachable
+            fallbackRenderMath();
+          }
+        });
+        // Backup timeout check
+        setTimeout(function() {
+          if (typeof renderMathInElement !== "function") {
+            fallbackRenderMath();
+          }
+        }, 1200);
+      }
+
+      function fallbackRenderMath() {
+        const mainContent = document.querySelector(".main-content");
+        if (!mainContent) return;
+
+        const walker = document.createTreeWalker(
+          mainContent,
+          NodeFilter.SHOW_TEXT,
+          {
+            acceptNode: function(node) {
+              if (node.parentElement && ["SCRIPT", "STYLE", "CODE", "PRE"].includes(node.parentElement.tagName)) {
+                return NodeFilter.FILTER_REJECT;
+              }
+              return (node.nodeValue && node.nodeValue.includes("$")) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+            }
+          }
+        );
+
+        const nodesToReplace = [];
+        let currentNode;
+        while ((currentNode = walker.nextNode())) {
+          nodesToReplace.push(currentNode);
+        }
+
+        nodesToReplace.forEach(function(node) {
+          const text = node.nodeValue;
+          if (!text || !text.includes("$")) return;
+
+          const span = document.createElement("span");
+          span.innerHTML = text.replace(/\$([^\$]+)\$/g, function(match, formula) {
+            let clean = formula
+              .replace(/\\mathcal\{J\}/g, "𝒥")
+              .replace(/\\mathcal\{R\}/g, "ℛ")
+              .replace(/\\mathcal\{S\}/g, "𝒮")
+              .replace(/\\mathcal\{O\}/g, "𝒪")
+              .replace(/\\text\{DP\}/g, "DP")
+              .replace(/\\sum_\{J_i\s*\\in\s*\\mathcal\{S\}\}\s*v_i/g, "∑<sub>J<sub>i</sub> ∈ 𝒮</sub> v<sub>i</sub>")
+              .replace(/\\dots/g, "…")
+              .replace(/\\cdot/g, "·")
+              .replace(/\\times/g, "×")
+              .replace(/\\le/g, "≤")
+              .replace(/\\ge/g, "≥")
+              .replace(/\\to/g, "→")
+              .replace(/\\infty/g, "∞")
+              .replace(/\\pi/g, "π")
+              .replace(/\\in/g, "∈")
+              .replace(/\\{/g, "{")
+              .replace(/\\}/g, "}")
+              .replace(/_([a-zA-Z0-9]+)/g, "<sub>$1</sub>")
+              .replace(/\^([a-zA-Z0-9]+|\*)/g, "<sup>$1</sup>");
+            return `<span style="font-family: 'JetBrains Mono', monospace; font-style: italic; color: inherit;">${clean}</span>`;
+          });
+          node.parentNode.replaceChild(span, node);
+        });
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ 'Add New Resource' if mode == 'add' else 'Edit Resource' }} | ChronoSync</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <a href="/" class="brand-section">
+        <div class="brand-logo">⚡</div>
+        <div>
+          <div class="brand-title">ChronoSync</div>
+          <div class="brand-subtitle">Job Scheduler</div>
+        </div>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="/" class="nav-link">📊 Dashboard</a></li>
+        <li><a href="/jobs" class="nav-link">📋 Jobs</a></li>
+        <li><a href="/resources" class="nav-link active">📦 Resources</a></li>
+        <li><a href="/schedule" class="nav-link">⏱️ Schedule</a></li>
+        <li><a href="/comparison" class="nav-link">⚖️ Algorithm Comparison</a></li>
+        <li><a href="/about" class="nav-link">📖 About Project</a></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span>Module Online</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">{{ 'Add New Resource' if mode == 'add' else 'Edit Resource: ' + resource.resource_id }}</h1>
+          <p class="page-subtitle">
+            {{ 'Register an available computational or human resource for workload allocation.' if mode == 'add' else 'Update capacity parameters and operational status.' }}
+          </p>
+        </div>
+        <a href="/resources" class="btn btn-secondary">
+          ← Back to Resources
+        </a>
+      </header>
+
+      <!-- Server-Side Validation Error Alert Banner -->
+      {% if errors %}
+        <div class="alert-banner alert-error">
+          <div>
+            <strong>Validation Error:</strong> Please fix the errors highlighted below.
+            <ul style="margin-top: 0.4rem; padding-left: 1.25rem; font-size: 0.85rem;">
+              {% for field, msg in errors.items() %}
+                <li>{{ msg }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="glass-panel" style="max-width: 680px; margin: 0 auto;">
+        <form method="POST" action="{{ '/resources/add' if mode == 'add' else '/resources/edit/' ~ resource.id }}" id="resource-form" novalidate>
+          
+          <!-- Resource ID -->
+          <div class="form-group">
+            <label class="form-label" for="resource_id">
+              Resource ID <span style="color: #F87171;">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="resource_id" 
+              name="resource_id" 
+              class="form-control" 
+              placeholder="e.g. R001, DEV-01, GPU-NODE-1" 
+              value="{{ resource.resource_id or '' }}" 
+              required
+              {% if errors.resource_id %}style="border-color: #F87171;"{% endif %}
+            >
+            {% if errors.resource_id %}
+              <div class="field-error-msg">⚠️ {{ errors.resource_id }}</div>
+            {% else %}
+              <small style="color: var(--text-dim); font-size: 0.75rem;">Unique identifier for algorithmic assignment.</small>
+            {% endif %}
+          </div>
+
+          <!-- Resource Name -->
+          <div class="form-group">
+            <label class="form-label" for="resource_name">
+              Resource Name <span style="color: #F87171;">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="resource_name" 
+              name="resource_name" 
+              class="form-control" 
+              placeholder="e.g. Developer 1, High-Performance GPU" 
+              value="{{ resource.resource_name or '' }}" 
+              minlength="2"
+              required
+              {% if errors.resource_name %}style="border-color: #F87171;"{% endif %}
+            >
+            {% if errors.resource_name %}
+              <div class="field-error-msg">⚠️ {{ errors.resource_name }}</div>
+            {% else %}
+              <small style="color: var(--text-dim); font-size: 0.75rem;">Minimum 2 characters required.</small>
+            {% endif %}
+          </div>
+
+          <!-- Form Grid for Type & Hours -->
+          <div class="form-grid">
+            <!-- Resource Type -->
+            <div class="form-group">
+              <label class="form-label" for="resource_type">
+                Resource Type <span style="color: #F87171;">*</span>
+              </label>
+              <select 
+                id="resource_type" 
+                name="resource_type" 
+                class="form-control" 
+                required
+                {% if errors.resource_type %}style="border-color: #F87171;"{% endif %}
+              >
+                <option value="">-- Select Type --</option>
+                {% for tp in resource_types %}
+                  <option value="{{ tp }}" {% if resource.resource_type == tp %}selected{% endif %}>{{ tp }}</option>
+                {% endfor %}
+              </select>
+              {% if errors.resource_type %}
+                <div class="field-error-msg">⚠️ {{ errors.resource_type }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Available Hours -->
+            <div class="form-group">
+              <label class="form-label" for="available_hours">
+                Available Hours <span style="color: #F87171;">*</span>
+              </label>
+              <input 
+                type="number" 
+                id="available_hours" 
+                name="available_hours" 
+                class="form-control" 
+                step="0.5" 
+                min="0.1" 
+                max="24" 
+                placeholder="e.g. 8.0" 
+                value="{{ resource.available_hours or '' }}" 
+                required
+                {% if errors.available_hours %}style="border-color: #F87171;"{% endif %}
+              >
+              {% if errors.available_hours %}
+                <div class="field-error-msg">⚠️ {{ errors.available_hours }}</div>
+              {% else %}
+                <small style="color: var(--text-dim); font-size: 0.75rem;">Positive value up to 24.0 hours.</small>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Status -->
+          <div class="form-group">
+            <label class="form-label" for="status">
+              Operational Status <span style="color: #F87171;">*</span>
+            </label>
+            <select 
+              id="status" 
+              name="status" 
+              class="form-control" 
+              required
+              {% if errors.status %}style="border-color: #F87171;"{% endif %}
+            >
+              {% for st in resource_statuses %}
+                <option value="{{ st }}" {% if resource.status == st %}selected{% endif %}>{{ st }}</option>
+              {% endfor %}
+            </select>
+            {% if errors.status %}
+              <div class="field-error-msg">⚠️ {{ errors.status }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Actions -->
+          <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 2rem;">
+            <a href="/resources" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary" id="btn-submit-resource">
+              {{ 'Save Resource' if mode == 'add' else 'Update Resource' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  <script>
+    // Client-side validation enhancement
+    document.getElementById("resource-form").addEventListener("submit", function(e) {
+      let valid = true;
+      const resId = document.getElementById("resource_id").value.trim();
+      const resName = document.getElementById("resource_name").value.trim();
+      const resType = document.getElementById("resource_type").value.trim();
+      const availHours = parseFloat(document.getElementById("available_hours").value);
+      const status = document.getElementById("status").value.trim();
+
+      if (!resId) {
+        valid = false;
+        alert("Resource ID is required.");
+        e.preventDefault();
+        return;
+      }
+      if (!resName || resName.length < 2) {
+        valid = false;
+        alert("Resource Name must be at least 2 characters.");
+        e.preventDefault();
+        return;
+      }
+      if (!resType) {
+        valid = false;
+        alert("Resource Type is required.");
+        e.preventDefault();
+        return;
+      }
+      if (isNaN(availHours) || availHours <= 0 || availHours > 24) {
+        valid = false;
+        alert("Available Hours must be a positive number up to 24 hours.");
+        e.preventDefault();
+        return;
+      }
+      if (!status) {
+        valid = false;
+        alert("Status is required.");
+        e.preventDefault();
+        return;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 - Resource Not Found | ChronoSync</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="app-container" style="justify-content: center; align-items: center; min-height: 100vh; padding: 2rem;">
+    <div class="glass-panel" style="max-width: 540px; width: 100%; text-align: center; padding: 3rem 2rem; border-color: rgba(99, 102, 241, 0.4);">
+      <div style="font-size: 3.5rem; margin-bottom: 1rem;">🔍</div>
+      <span class="badge badge-warning" style="margin-bottom: 1rem; font-size: 0.85rem;">HTTP 404 Error</span>
+      <h1 style="font-size: 1.8rem; font-weight: 800; color: #fff; margin-bottom: 0.75rem;">Page or Resource Not Found</h1>
+      <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 2rem;">
+        The requested routing URL, workload job, or resource allocation could not be located in the ChronoSync engine.
+      </p>
+      <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <a href="/" class="btn btn-primary">📊 Return to Dashboard</a>
+        <a href="/jobs" class="btn btn-secondary">📋 View Jobs</a>
+        <a href="/schedule" class="btn btn-secondary">⏱️ Open Schedule</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

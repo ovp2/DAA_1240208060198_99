@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Management | ChronoSync</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <a href="/" class="brand-section">
+        <div class="brand-logo">⚡</div>
+        <div>
+          <div class="brand-title">ChronoSync</div>
+          <div class="brand-subtitle">Job Scheduler</div>
+        </div>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="/" class="nav-link">📊 Dashboard</a></li>
+        <li><a href="/jobs" class="nav-link active">📋 Jobs</a></li>
+        <li><a href="/resources" class="nav-link">📦 Resources</a></li>
+        <li><a href="/schedule" class="nav-link">⏱️ Schedule</a></li>
+        <li><a href="/comparison" class="nav-link">⚖️ Algorithm Comparison</a></li>
+        <li><a href="/about" class="nav-link">📖 About Project</a></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span>Engine Online</span>
+        </div>
+        <div style="color: var(--text-dim); margin-top: 4px; font-size: 0.72rem;">
+          {{ total_jobs_count or jobs|length }} Workloads Configured
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert-banner alert-{{ category }}">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span>{% if category == 'success' %}✅{% elif category == 'warning' %}⚠️{% else %}🛑{% endif %}</span>
+                <span>{{ message }}</span>
+              </div>
+              <button onclick="this.parentElement.remove()" style="background:none; border:none; color:inherit; cursor:pointer; font-size:1.1rem;">&times;</button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Workload Job Management</h1>
+          <p class="page-subtitle">Configure process arrivals, execution bursts, priorities, deadlines, and profit weights</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+          <button onclick="openAddJobModal()" class="btn btn-primary" id="btn-add-job">+ Add New Job</button>
+          <button onclick="triggerLoadDemoData()" class="btn btn-secondary" id="btn-demo-data">🚀 Load Demo Data</button>
+          <a href="/schedule" class="btn btn-secondary">Run Schedule →</a>
+        </div>
+      </header>
+
+      <!-- KPI Status Badges Bar -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <div class="stat-card" style="padding: 1rem; --stat-glow: rgba(99, 102, 241, 0.3);">
+          <span class="stat-label">Total Jobs</span>
+          <span class="stat-value" style="font-size: 1.5rem;">{{ total_jobs_count or jobs|length }}</span>
+        </div>
+        <div class="stat-card" style="padding: 1rem; --stat-glow: rgba(56, 189, 248, 0.3);">
+          <span class="stat-label">Pending / Ready</span>
+          <span class="stat-value" style="font-size: 1.5rem; color: var(--accent-cyan);">{{ pending_jobs_count or 0 }}</span>
+        </div>
+        <div class="stat-card" style="padding: 1rem; --stat-glow: rgba(16, 185, 129, 0.3);">
+          <span class="stat-label">Scheduled</span>
+          <span class="stat-value" style="font-size: 1.5rem; color: var(--accent-emerald);">{{ scheduled_jobs_count or 0 }}</span>
+        </div>
+        <div class="stat-card" style="padding: 1rem; --stat-glow: rgba(239, 68, 68, 0.3);">
+          <span class="stat-label">Missed</span>
+          <span class="stat-value" style="font-size: 1.5rem; color: #F87171;">{{ missed_jobs_count or 0 }}</span>
+        </div>
+      </div>
+
+      <!-- Search and Filter Panel -->
+      <div class="glass-panel" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+        <form method="GET" action="/jobs" id="job-search-filter-form" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="search-job-input">Search Workload Jobs</label>
+            <input 
+              type="text" 
+              id="search-job-input" 
+              name="search" 
+              class="form-control" 
+              placeholder="Filter by Job Name, ID, or Resource (e.g. Website, #1, Machine)..." 
+              value="{{ search_query or '' }}"
+              oninput="filterJobsTableClientSide()"
+            >
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="filter-status-select">Status Filter</label>
+            <select id="filter-status-select" name="status" class="form-control" onchange="document.getElementById('job-search-filter-form').submit()">
+              <option value="All" {{ 'selected' if status_filter == 'All' or not status_filter else '' }}>All Statuses</option>
+              <option value="Pending" {{ 'selected' if status_filter == 'Pending' else '' }}>Pending / Ready</option>
+              <option value="Scheduled" {{ 'selected' if status_filter == 'Scheduled' else '' }}>Scheduled</option>
+              <option value="Missed" {{ 'selected' if status_filter == 'Missed' else '' }}>Missed</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="filter-priority-select">Priority Filter</label>
+            <select id="filter-priority-select" name="priority" class="form-control" onchange="document.getElementById('job-search-filter-form').submit()">
+              <option value="All" {{ 'selected' if priority_filter == 'All' or not priority_filter else '' }}>All Priorities</option>
+              <option value="1" {{ 'selected' if priority_filter == '1' else '' }}>Priority 1 (Highest)</option>
+              <option value="2" {{ 'selected' if priority_filter == '2' else '' }}>Priority 2</option>
+              <option value="3" {{ 'selected' if priority_filter == '3' else '' }}>Priority 3</option>
+              <option value="4" {{ 'selected' if priority_filter == '4' else '' }}>Priority 4+</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-secondary">Filter</button>
+            {% if search_query or (status_filter and status_filter != 'All') or (priority_filter and priority_filter != 'All') %}
+              <a href="/jobs" class="btn btn-secondary" title="Reset Filters">✕</a>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+
+      <!-- Preset Workload Selector Bar -->
+      <div class="preset-bar">
+        <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Load Presets:</span>
+        <button onclick="loadPreset('cloud_microservices')" class="preset-chip">🌐 Cloud Microservices</button>
+        <button onclick="loadPreset('realtime_dsp')" class="preset-chip">🎙️ Real-Time DSP</button>
+        <button onclick="loadPreset('high_contention')" class="preset-chip">💥 High-Contention Burst</button>
+        <button onclick="loadPreset('profit_maximizer')" class="preset-chip">💎 Revenue Maximizer</button>
+        <button onclick="clearAllJobs()" class="preset-chip" style="margin-left: auto; color: #F87171; border-color: rgba(239, 68, 68, 0.3);">🗑️ Clear All</button>
+      </div>
+
+      <!-- Jobs Table Panel -->
+      <div class="glass-panel">
+        <div class="table-container">
+          <table class="cyber-table" id="jobs-main-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Job Name</th>
+                <th>Arrival Time</th>
+                <th>Burst Time</th>
+                <th>Priority</th>
+                <th>Deadline</th>
+                <th>Profit ($)</th>
+                <th>Required Resource</th>
+                <th>Status</th>
+                <th style="text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="jobs-table-body">
+              {% if jobs %}
+                {% for job in jobs %}
+                <tr id="job-row-{{ job.id }}" class="job-data-row" data-name="{{ job.name|lower }}" data-id="{{ job.id }}" data-resource="{{ (job.required_resource or '')|lower }}" data-status="{{ job.status }}" data-priority="{{ job.priority }}">
+                  <td><code>#{{ job.id }}</code></td>
+                  <td>
+                    <div class="job-pill">
+                      <span class="color-dot" data-color="{{ job.color }}"></span>
+                      <strong>{{ job.name }}</strong>
+                    </div>
+                  </td>
+                  <td>t = {{ job.arrival_time }}</td>
+                  <td><strong>{{ job.burst_time }}</strong> units</td>
+                  <td>
+                    <span class="badge {{ 'badge-danger' if job.priority == 1 else ('badge-warning' if job.priority == 2 else 'badge-greedy') }}">
+                      P{{ job.priority }}
+                    </span>
+                  </td>
+                  <td>t = {{ job.deadline }}</td>
+                  <td><strong style="color: var(--accent-emerald);">${{ job.profit }}</strong></td>
+                  <td>
+                    {% if job.required_resource %}
+                      <span class="badge" style="background: rgba(99, 102, 241, 0.15); border-color: var(--accent-primary); color: #fff;">{{ job.required_resource }}</span>
+                    {% else %}
+                      <span style="color: var(--text-dim); font-size: 0.8rem;">Any Compatible</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="badge {{ 'badge-success' if job.status == 'Scheduled' else ('badge-danger' if job.status == 'Missed' else 'badge-secondary') }}">
+                      {{ job.status }}
+                    </span>
+                  </td>
+                  <td style="text-align: right; white-space: nowrap;">
+                    <button type="button" class="btn btn-secondary btn-sm btn-action-view" data-job-id="{{ job.id }}" style="margin-right: 0.25rem;" title="View Job Details">👁️ View</button>
+                    <button type="button" class="btn btn-secondary btn-sm btn-action-edit" data-job-id="{{ job.id }}" style="margin-right: 0.25rem;" title="Edit Job">✏️ Edit</button>
+                    <button type="button" class="btn btn-danger btn-sm btn-action-delete" data-job-id="{{ job.id }}" data-status="{{ job.status }}" title="Delete Job">🗑️</button>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr id="empty-state-row">
+                  <td colspan="10" style="text-align: center; color: var(--text-dim); padding: 3rem 1rem;">
+                    <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📋</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: #fff;">No jobs match the current criteria.</div>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0.5rem auto 1.25rem; max-width: 420px;">
+                      Click <strong>+ Add New Job</strong>, select a preset above, or load the official demonstration dataset.
+                    </p>
+                    <button onclick="triggerLoadDemoData()" class="btn btn-primary btn-sm">🚀 Load Demo Data (8 Jobs, 4 Resources)</button>
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add / Edit Job Modal -->
+  <div id="job-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="modal-title" style="font-size: 1.25rem; font-weight: 700; color: #fff;">Add New Process Job</h2>
+        <button onclick="closeJobModal()" class="modal-close">&times;</button>
+      </div>
+
+      <form id="job-form" onsubmit="handleJobFormSubmit(event)">
+        <input type="hidden" id="job-id" name="id">
+
+        <div class="form-group full-width">
+          <label class="form-label" for="job-name">Job Name / Identifier *</label>
+          <input type="text" id="job-name" name="name" class="form-control" placeholder="e.g. Website Development" required>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="job-arrival">Arrival Time (t) *</label>
+            <input type="number" id="job-arrival" name="arrival_time" class="form-control" min="0" value="0" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="job-burst">Processing Time / Burst *</label>
+            <input type="number" id="job-burst" name="burst_time" class="form-control" min="1" value="3" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="job-priority">Priority Rank (1 = Highest) *</label>
+            <input type="number" id="job-priority" name="priority" class="form-control" min="1" max="10" value="1" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="job-deadline">Deadline (t) *</label>
+            <input type="number" id="job-deadline" name="deadline" class="form-control" min="1" value="8" required>
+            <span style="font-size: 0.72rem; color: var(--text-dim);">Must be &ge; processing time</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="job-profit">Profit Value ($) *</label>
+            <input type="number" id="job-profit" name="profit" class="form-control" min="0" value="75" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="job-resource-req">Required Resource Type</label>
+            <select id="job-resource-req" name="required_resource" class="form-control">
+              <option value="">Any Available Resource</option>
+              <option value="Employee">Employee</option>
+              <option value="Machine">Machine</option>
+              <option value="Computer">Computer</option>
+              <option value="Vehicle">Vehicle</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="job-color">Visual Color</label>
+            <input type="color" id="job-color" name="color" class="form-control" value="#6366F1" style="height: 42px; padding: 2px;">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="job-cpu">Required CPU Cores</label>
+            <input type="number" id="job-cpu" name="cpu_req" class="form-control" min="1" max="16" value="2" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="job-mem">Required Memory (GB)</label>
+            <input type="number" id="job-mem" name="mem_req" class="form-control" min="1" max="64" value="4" required>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="button" onclick="closeJobModal()" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-job">Save Job</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- View Job Details Modal -->
+  <div id="view-job-modal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 580px;">
+      <div class="modal-header">
+        <h2 id="view-job-title" style="font-size: 1.25rem; font-weight: 700; color: #fff;">Workload Job Details</h2>
+        <button onclick="closeViewJobModal()" class="modal-close">&times;</button>
+      </div>
+      <div id="view-job-content" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+        <!-- Injected via JavaScript -->
+      </div>
+      <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+        <button type="button" onclick="closeViewJobModal()" class="btn btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script id="jobs-data" type="application/json">{{ jobs | tojson | safe if jobs else '[]' }}</script>
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  <script>
+    const jobsDataEl = document.getElementById("jobs-data");
+    const jobsList = jobsDataEl ? JSON.parse(jobsDataEl.textContent || "[]") : [];
+    const jobsMap = new Map(jobsList.map(j => [Number(j.id), j]));
+
+    document.getElementById("jobs-table-body")?.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const jobId = Number(btn.getAttribute("data-job-id"));
+      const job = jobsMap.get(jobId);
+
+      if (btn.classList.contains("btn-action-view") && job) {
+        viewJobDetails(job);
+      } else if (btn.classList.contains("btn-action-edit") && job) {
+        openEditJobModal(job);
+      } else if (btn.classList.contains("btn-action-delete")) {
+        deleteJobSafely(jobId, btn.getAttribute("data-status"));
+      }
+    });
+
+    function openAddJobModal() {
+      document.getElementById("modal-title").innerText = "Add New Process Job";
+      document.getElementById("job-id").value = "";
+      document.getElementById("job-name").value = "";
+      document.getElementById("job-arrival").value = "0";
+      document.getElementById("job-burst").value = "3";
+      document.getElementById("job-priority").value = "1";
+      document.getElementById("job-deadline").value = "8";
+      document.getElementById("job-profit").value = "75";
+      document.getElementById("job-resource-req").value = "";
+      document.getElementById("job-color").value = "#6366F1";
+      document.getElementById("job-cpu").value = "2";
+      document.getElementById("job-mem").value = "4";
+      document.getElementById("job-modal").classList.add("active");
+    }
+
+    function openEditJobModal(job) {
+      document.getElementById("modal-title").innerText = `Edit Job #${job.id}`;
+      document.getElementById("job-id").value = job.id;
+      document.getElementById("job-name").value = job.name;
+      document.getElementById("job-arrival").value = job.arrival_time;
+      document.getElementById("job-burst").value = job.burst_time;
+      document.getElementById("job-priority").value = job.priority;
+      document.getElementById("job-deadline").value = job.deadline;
+      document.getElementById("job-profit").value = job.profit;
+      document.getElementById("job-resource-req").value = job.required_resource || "";
+      document.getElementById("job-color").value = job.color || "#6366F1";
+      document.getElementById("job-cpu").value = job.cpu_req || 1;
+      document.getElementById("job-mem").value = job.mem_req || 2;
+      document.getElementById("job-modal").classList.add("active");
+    }
+
+    function closeJobModal() {
+      document.getElementById("job-modal").classList.remove("active");
+    }
+
+    function viewJobDetails(job) {
+      document.getElementById("view-job-title").innerText = `Job #${job.id}: ${job.name}`;
+      const margin = job.deadline - (job.arrival_time + job.burst_time);
+      const marginStatus = margin >= 0 
+        ? `<span style="color: var(--accent-emerald);">Feasible (+${margin} units slack)</span>` 
+        : `<span style="color: #F87171;">Infeasible (${margin} units negative slack)</span>`;
+
+      document.getElementById("view-job-content").innerHTML = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; background: rgba(15, 23, 42, 0.6); padding: 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <div><span style="color: var(--text-dim); font-size: 0.8rem; display: block;">Arrival Time:</span> <strong style="color: #fff;">t = ${job.arrival_time}</strong></div>
+          <div><span style="color: var(--text-dim); font-size: 0.8rem; display: block;">Burst / Duration:</span> <strong style="color: var(--accent-cyan);">${job.burst_time} units</strong></div>
+          <div><span style="color: var(--text-dim); font-size: 0.8rem; display: block;">Deadline:</span> <strong style="color: var(--accent-amber);">t = ${job.deadline}</strong></div>
+          <div><span style="color: var(--text-dim); font-size: 0.8rem; display: block;">Profit / Value:</span> <strong style="color: var(--accent-emerald);">$${job.profit}</strong></div>
+          <div><span style="color: var(--text-dim); font-size: 0.8rem; display: block;">Priority Level:</span> <strong style="color: #fff;">Priority ${job.priority}</strong></div>
+          <div><span style="color: var(--text-dim); font-size: 0.8rem; display: block;">Required Resource:</span> <strong style="color: #fff;">${job.required_resource || 'Any'}</strong></div>
+          <div><span style="color: var(--text-dim); font-size: 0.8rem; display: block;">Compute Spec:</span> <strong style="color: #fff;">${job.cpu_req || 1} CPU / ${job.mem_req || 2} GB</strong></div>
+          <div><span style="color: var(--text-dim); font-size: 0.8rem; display: block;">Current Status:</span> <strong style="color: ${job.status === 'Scheduled' ? 'var(--accent-emerald)' : (job.status === 'Missed' ? '#F87171' : 'var(--accent-cyan)')};">${job.status}</strong></div>
+        </div>
+        <div style="background: rgba(10, 14, 26, 0.8); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 0.85rem;">
+          <div style="margin-bottom: 0.4rem;"><strong>Deadline Slack Margin:</strong> ${marginStatus}</div>
+          <div><strong>Assigned Resource ID:</strong> ${job.assigned_resource_id ? `<code>${job.assigned_resource_id}</code>` : '<span style="color: var(--text-dim);">Unassigned</span>'}</div>
+        </div>
+      `;
+      document.getElementById("view-job-modal").classList.add("active");
+    }
+
+    function closeViewJobModal() {
+      document.getElementById("view-job-modal").classList.remove("active");
+    }
+
+    async function handleJobFormSubmit(e) {
+      e.preventDefault();
+      const jobId = document.getElementById("job-id").value;
+      const name = document.getElementById("job-name").value.trim();
+      const arrival = parseInt(document.getElementById("job-arrival").value);
+      const burst = parseInt(document.getElementById("job-burst").value);
+      const priority = parseInt(document.getElementById("job-priority").value);
+      const deadline = parseInt(document.getElementById("job-deadline").value);
+      const profit = parseFloat(document.getElementById("job-profit").value);
+      const reqRes = document.getElementById("job-resource-req").value;
+      const color = document.getElementById("job-color").value;
+      const cpu = parseInt(document.getElementById("job-cpu").value);
+      const mem = parseInt(document.getElementById("job-mem").value);
+
+      // Client-side Validation (Section 4)
+      if (!name) {
+        showToast("Job Name / Identifier is required.", "error");
+        return;
+      }
+      if (isNaN(burst) || burst <= 0) {
+        showToast("Processing time (burst time) must be a positive integer greater than 0.", "error");
+        return;
+      }
+      if (isNaN(deadline) || deadline <= 0) {
+        showToast("Deadline must be greater than 0.", "error");
+        return;
+      }
+      if (deadline < burst) {
+        showToast("Deadline must be greater than or equal to processing time.", "error");
+        return;
+      }
+      if (isNaN(profit) || profit < 0) {
+        showToast("Profit must be greater than or equal to 0.", "error");
+        return;
+      }
+
+      const saveBtn = document.getElementById("btn-save-job");
+      saveBtn.disabled = true;
+      saveBtn.innerText = "Saving...";
+
+      const payload = {
+        name: name,
+        arrival_time: arrival,
+        burst_time: burst,
+        priority: priority,
+        deadline: deadline,
+        profit: profit,
+        required_resource: reqRes,
+        color: color,
+        cpu_req: cpu,
+        mem_req: mem
+      };
+
+      const url = jobId ? `/api/jobs/${jobId}` : "/api/jobs";
+      const method = jobId ? "PUT" : "POST";
+
+      try {
+        const response = await fetch(url, {
+          method: method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (data.success) {
+          showToast(jobId ? "Job updated successfully!" : "New job created successfully!", "success");
+          closeJobModal();
+          setTimeout(() => window.location.reload(), 400);
+        } else {
+          showToast(data.error || "Validation error occurred.", "error");
+        }
+      } catch (err) {
+        showToast("Error saving job configuration.", "error");
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerText = "Save Job";
+      }
+    }
+
+    async function deleteJobSafely(jobId, status) {
+      if (status === "Scheduled") {
+        if (!confirm(`Warning: Job #${jobId} is currently Scheduled. Deleting it may impact active schedules. Proceed?`)) {
+          return;
+        }
+      } else {
+        if (!confirm(`Are you sure you want to delete Job #${jobId}?`)) return;
+      }
+
+      try {
+        const resp = await fetch(`/api/jobs/${jobId}`, { method: "DELETE" });
+        const data = await resp.json();
+        if (data.success) {
+          showToast(data.message || "Job deleted successfully.", "success");
+          setTimeout(() => window.location.reload(), 400);
+        } else {
+          showToast(data.error || "Cannot delete job.", "warning");
+        }
+      } catch (err) {
+        showToast("Error deleting job.", "error");
+      }
+    }
+
+    function filterJobsTableClientSide() {
+      const term = document.getElementById("search-job-input").value.toLowerCase().trim();
+      const rows = document.querySelectorAll(".job-data-row");
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+        const name = row.getAttribute("data-name") || "";
+        const id = row.getAttribute("data-id") || "";
+        const res = row.getAttribute("data-resource") || "";
+        const match = !term || name.includes(term) || id.includes(term) || res.includes(term);
+        row.style.display = match ? "" : "none";
+        if (match) visibleCount++;
+      });
+    }
+
+    async function triggerLoadDemoData() {
+      if (!confirm("Load the official 8-job DAA demonstration dataset? This will configure realistic workloads for algorithm comparison.")) return;
+      try {
+        const resp = await fetch("/demo/load", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ overwrite: true })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          showToast("Official Demo Data loaded successfully!", "success");
+          setTimeout(() => window.location.reload(), 500);
+        }
+      } catch (err) {
+        showToast("Failed to load demo data.", "error");
+      }
+    }
+
+    async function clearAllJobs() {
+      if (!confirm("Are you sure you want to clear all jobs from the queue?")) return;
+      await loadPreset('empty');
+    }
+  </script>
+</body>
+</html>
